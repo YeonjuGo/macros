@@ -31,7 +31,13 @@ void ParticleFlow(int verbosity = 0) {
 
   JetReco *particleflowjetreco = new JetReco("PARTICLEFLOWJETRECO");
   particleflowjetreco->add_input( new ParticleFlowJetInput() );
+  particleflowjetreco->add_algo( new FastJetAlgo(Jet::ANTIKT,0.2), "AntiKt_ParticleFlow_r02" );
+  particleflowjetreco->add_algo( new FastJetAlgo(Jet::ANTIKT,0.3), "AntiKt_ParticleFlow_r03" );
   particleflowjetreco->add_algo( new FastJetAlgo(Jet::ANTIKT,0.4), "AntiKt_ParticleFlow_r04" );
+  particleflowjetreco->add_algo( new FastJetAlgo(Jet::ANTIKT,0.5), "AntiKt_ParticleFlow_r05" );
+  particleflowjetreco->add_algo( new FastJetAlgo(Jet::ANTIKT,0.6), "AntiKt_ParticleFlow_r06" );
+  particleflowjetreco->add_algo( new FastJetAlgo(Jet::ANTIKT,0.7), "AntiKt_ParticleFlow_r07" );
+  particleflowjetreco->add_algo( new FastJetAlgo(Jet::ANTIKT,0.8), "AntiKt_ParticleFlow_r08" );
   particleflowjetreco->set_algo_node("ANTIKT");
   particleflowjetreco->set_input_node("PARTICLEFLOW");
   particleflowjetreco->Verbosity( verbosity );

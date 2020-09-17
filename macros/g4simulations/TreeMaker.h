@@ -56,6 +56,11 @@ class TreeMaker: public SubsysReco
   double _pfJetsEtaLow;
   double _pfJetsEtaHigh;
 
+  bool _doTruthJets;
+  double _truthJetsPtMin;
+  double _truthJetsEtaLow;
+  double _truthJetsEtaHigh;
+
   std::string _foutname;
 
   float _b_truth_vx;
@@ -127,16 +132,67 @@ class TreeMaker: public SubsysReco
   std::vector< std::vector<int> > _b_clusterT2_tower_layer;
 
   static const int nJets = 500;
-  int _b_caloJet_n;
-  float _b_caloJet_eta[nJets];
-  float _b_caloJet_phi[nJets];
-  float _b_caloJet_pt[nJets];
+  int _b_caloJet2_n;
+  float _b_caloJet2_eta[nJets];
+  float _b_caloJet2_phi[nJets];
+  float _b_caloJet2_pt[nJets];
 
-  int _b_pfJet_n;
-  float _b_pfJet_eta[nJets];
-  float _b_pfJet_phi[nJets];
-  float _b_pfJet_pt[nJets];
+  int _b_caloJet3_n;
+  float _b_caloJet3_eta[nJets];
+  float _b_caloJet3_phi[nJets];
+  float _b_caloJet3_pt[nJets];
 
+  int _b_caloJet4_n;
+  float _b_caloJet4_eta[nJets];
+  float _b_caloJet4_phi[nJets];
+  float _b_caloJet4_pt[nJets];
+
+  int _b_caloJet5_n;
+  float _b_caloJet5_eta[nJets];
+  float _b_caloJet5_phi[nJets];
+  float _b_caloJet5_pt[nJets];
+
+  int _b_pfJet2_n;
+  float _b_pfJet2_eta[nJets];
+  float _b_pfJet2_phi[nJets];
+  float _b_pfJet2_pt[nJets];
+
+  int _b_pfJet3_n;
+  float _b_pfJet3_eta[nJets];
+  float _b_pfJet3_phi[nJets];
+  float _b_pfJet3_pt[nJets];
+
+  int _b_pfJet4_n;
+  float _b_pfJet4_eta[nJets];
+  float _b_pfJet4_phi[nJets];
+  float _b_pfJet4_pt[nJets];
+
+  int _b_pfJet5_n;
+  float _b_pfJet5_eta[nJets];
+  float _b_pfJet5_phi[nJets];
+  float _b_pfJet5_pt[nJets];
+
+  int _b_truthJet2_n;
+  float _b_truthJet2_eta[nJets];
+  float _b_truthJet2_phi[nJets];
+  float _b_truthJet2_pt[nJets];
+
+  int _b_truthJet3_n;
+  float _b_truthJet3_eta[nJets];
+  float _b_truthJet3_phi[nJets];
+  float _b_truthJet3_pt[nJets];
+
+  int _b_truthJet4_n;
+  float _b_truthJet4_eta[nJets];
+  float _b_truthJet4_phi[nJets];
+  float _b_truthJet4_pt[nJets];
+
+  int _b_truthJet5_n;
+  float _b_truthJet5_eta[nJets];
+  float _b_truthJet5_phi[nJets];
+  float _b_truthJet5_pt[nJets];
+
+  //void processCaloJet(JetMap* calojet, int cone, float ptMin, float etaLow, float etaHigh);
   void processTowersSim(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer);
   void processTowersRaw(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer);
   void processTowersCalib(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer);

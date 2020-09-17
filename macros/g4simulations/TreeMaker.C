@@ -49,6 +49,11 @@ int TreeMaker::Init(PHCompositeNode *topNode)
   _pfJetsEtaLow = m_config.GetValue("PFJETSETALOW", -1.1);
   _pfJetsEtaHigh = m_config.GetValue("PFJETSETAHIGH", 1.1);
 
+  _doTruthJets = m_config.GetValue("DOTRUTHJETS", 0);
+  _truthJetsPtMin = m_config.GetValue("TRUTHJETSPTMIN", 10.0);
+  _truthJetsEtaLow = m_config.GetValue("TRUTHJETSETALOW", -1.1);
+  _truthJetsEtaHigh = m_config.GetValue("TRUTHJETSETAHIGH", 1.1);
+
   _tree = new TTree("aftburnTree","");
 
   _tree->Branch("truth_vx", &_b_truth_vx, "truth_vx/F");
@@ -111,17 +116,69 @@ int TreeMaker::Init(PHCompositeNode *topNode)
   _tree->Branch("part_pdgid",_b_part_pdgid, "part_pdgid[part_n]/I");
 
   if(_doCaloJets){
-    _tree->Branch("caloJet_n", &_b_caloJet_n, "caloJet_n/I");
-    _tree->Branch("caloJet_eta", _b_caloJet_eta, "caloJet_eta[caloJet_n]/F");
-    _tree->Branch("caloJet_phi", _b_caloJet_phi, "caloJet_phi[caloJet_n]/F");
-    _tree->Branch("caloJet_pt", _b_caloJet_pt, "caloJet_pt[caloJet_n]/F");
+    _tree->Branch("caloJet2_n", &_b_caloJet2_n, "caloJet2_n/I");
+    _tree->Branch("caloJet2_eta", _b_caloJet2_eta, "caloJet2_eta[caloJet2_n]/F");
+    _tree->Branch("caloJet2_phi", _b_caloJet2_phi, "caloJet2_phi[caloJet2_n]/F");
+    _tree->Branch("caloJet2_pt", _b_caloJet2_pt, "caloJet2_pt[caloJet2_n]/F");
+
+    _tree->Branch("caloJet3_n", &_b_caloJet3_n, "caloJet3_n/I");
+    _tree->Branch("caloJet3_eta", _b_caloJet3_eta, "caloJet3_eta[caloJet3_n]/F");
+    _tree->Branch("caloJet3_phi", _b_caloJet3_phi, "caloJet3_phi[caloJet3_n]/F");
+    _tree->Branch("caloJet3_pt", _b_caloJet3_pt, "caloJet3_pt[caloJet3_n]/F");
+
+    _tree->Branch("caloJet4_n", &_b_caloJet4_n, "caloJet4_n/I");
+    _tree->Branch("caloJet4_eta", _b_caloJet4_eta, "caloJet4_eta[caloJet4_n]/F");
+    _tree->Branch("caloJet4_phi", _b_caloJet4_phi, "caloJet4_phi[caloJet4_n]/F");
+    _tree->Branch("caloJet4_pt", _b_caloJet4_pt, "caloJet4_pt[caloJet4_n]/F");
+
+    _tree->Branch("caloJet5_n", &_b_caloJet5_n, "caloJet5_n/I");
+    _tree->Branch("caloJet5_eta", _b_caloJet5_eta, "caloJet5_eta[caloJet5_n]/F");
+    _tree->Branch("caloJet5_phi", _b_caloJet5_phi, "caloJet5_phi[caloJet5_n]/F");
+    _tree->Branch("caloJet5_pt", _b_caloJet5_pt, "caloJet5_pt[caloJet5_n]/F");
   }
 
   if(_doPFJets){
-    _tree->Branch("pfJet_n", &_b_pfJet_n, "pfJet_n/I");
-    _tree->Branch("pfJet_eta", _b_pfJet_eta, "pfJet_eta[pfJet_n]/F");
-    _tree->Branch("pfJet_phi", _b_pfJet_phi, "pfJet_phi[pfJet_n]/F");
-    _tree->Branch("pfJet_pt", _b_pfJet_pt, "pfJet_pt[pfJet_n]/F");
+    _tree->Branch("pfJet2_n", &_b_pfJet2_n, "pfJet2_n/I");
+    _tree->Branch("pfJet2_eta", _b_pfJet2_eta, "pfJet2_eta[pfJet2_n]/F");
+    _tree->Branch("pfJet2_phi", _b_pfJet2_phi, "pfJet2_phi[pfJet2_n]/F");
+    _tree->Branch("pfJet2_pt", _b_pfJet2_pt, "pfJet2_pt[pfJet2_n]/F");
+
+    _tree->Branch("pfJet3_n", &_b_pfJet3_n, "pfJet3_n/I");
+    _tree->Branch("pfJet3_eta", _b_pfJet3_eta, "pfJet3_eta[pfJet3_n]/F");
+    _tree->Branch("pfJet3_phi", _b_pfJet3_phi, "pfJet3_phi[pfJet3_n]/F");
+    _tree->Branch("pfJet3_pt", _b_pfJet3_pt, "pfJet3_pt[pfJet3_n]/F");
+
+    _tree->Branch("pfJet4_n", &_b_pfJet4_n, "pfJet4_n/I");
+    _tree->Branch("pfJet4_eta", _b_pfJet4_eta, "pfJet4_eta[pfJet4_n]/F");
+    _tree->Branch("pfJet4_phi", _b_pfJet4_phi, "pfJet4_phi[pfJet4_n]/F");
+    _tree->Branch("pfJet4_pt", _b_pfJet4_pt, "pfJet4_pt[pfJet4_n]/F");
+
+    _tree->Branch("pfJet5_n", &_b_pfJet5_n, "pfJet5_n/I");
+    _tree->Branch("pfJet5_eta", _b_pfJet5_eta, "pfJet5_eta[pfJet5_n]/F");
+    _tree->Branch("pfJet5_phi", _b_pfJet5_phi, "pfJet5_phi[pfJet5_n]/F");
+    _tree->Branch("pfJet5_pt", _b_pfJet5_pt, "pfJet5_pt[pfJet5_n]/F");
+  }
+
+  if(_doTruthJets){
+    _tree->Branch("truthJet2_n", &_b_truthJet2_n, "truthJet2_n/I");
+    _tree->Branch("truthJet2_eta", _b_truthJet2_eta, "truthJet2_eta[truthJet2_n]/F");
+    _tree->Branch("truthJet2_phi", _b_truthJet2_phi, "truthJet2_phi[truthJet2_n]/F");
+    _tree->Branch("truthJet2_pt", _b_truthJet2_pt, "truthJet2_pt[truthJet2_n]/F");
+
+    _tree->Branch("truthJet3_n", &_b_truthJet3_n, "truthJet3_n/I");
+    _tree->Branch("truthJet3_eta", _b_truthJet3_eta, "truthJet3_eta[truthJet3_n]/F");
+    _tree->Branch("truthJet3_phi", _b_truthJet3_phi, "truthJet3_phi[truthJet3_n]/F");
+    _tree->Branch("truthJet3_pt", _b_truthJet3_pt, "truthJet3_pt[truthJet3_n]/F");
+
+    _tree->Branch("truthJet4_n", &_b_truthJet4_n, "truthJet4_n/I");
+    _tree->Branch("truthJet4_eta", _b_truthJet4_eta, "truthJet4_eta[truthJet4_n]/F");
+    _tree->Branch("truthJet4_phi", _b_truthJet4_phi, "truthJet4_phi[truthJet4_n]/F");
+    _tree->Branch("truthJet4_pt", _b_truthJet4_pt, "truthJet4_pt[truthJet4_n]/F");
+
+    _tree->Branch("truthJet5_n", &_b_truthJet5_n, "truthJet5_n/I");
+    _tree->Branch("truthJet5_eta", _b_truthJet5_eta, "truthJet5_eta[truthJet5_n]/F");
+    _tree->Branch("truthJet5_phi", _b_truthJet5_phi, "truthJet5_phi[truthJet5_n]/F");
+    _tree->Branch("truthJet5_pt", _b_truthJet5_pt, "truthJet5_pt[truthJet5_n]/F");
   }
 
   return 0;
@@ -240,41 +297,195 @@ int TreeMaker::process_event(PHCompositeNode *topNode)
   }  
 
   if(_doCaloJets){
-    _b_caloJet_n = 0;
-    JetMap* caloJets_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r04");
-
-    for(JetMap::Iter iter = caloJets_p->begin(); iter != caloJets_p->end(); ++iter){
+    //R=2
+    _b_caloJet2_n = 0;
+    JetMap* caloJets2_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r02");
+    for(JetMap::Iter iter = caloJets2_p->begin(); iter != caloJets2_p->end(); ++iter){
       Jet *jet = iter->second;
       
       if(jet->get_pt() < _caloJetsPtMin) continue;
       if(jet->get_eta() < _caloJetsEtaLow) continue;
       if(jet->get_eta() > _caloJetsEtaHigh) continue;
       
-      _b_caloJet_pt[_b_caloJet_n] = jet->get_pt();
-      _b_caloJet_phi[_b_caloJet_n] = jet->get_phi();
-      _b_caloJet_eta[_b_caloJet_n] = jet->get_eta();
-      ++_b_caloJet_n;
+      _b_caloJet2_pt[_b_caloJet2_n] = jet->get_pt();
+      _b_caloJet2_phi[_b_caloJet2_n] = jet->get_phi();
+      _b_caloJet2_eta[_b_caloJet2_n] = jet->get_eta();
+      ++_b_caloJet2_n;
+    }
+    
+    //R=3
+    _b_caloJet3_n = 0;
+    JetMap* caloJets3_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r03");
+    for(JetMap::Iter iter = caloJets3_p->begin(); iter != caloJets3_p->end(); ++iter){
+      Jet *jet = iter->second;
+      
+      if(jet->get_pt() < _caloJetsPtMin) continue;
+      if(jet->get_eta() < _caloJetsEtaLow) continue;
+      if(jet->get_eta() > _caloJetsEtaHigh) continue;
+      
+      _b_caloJet3_pt[_b_caloJet3_n] = jet->get_pt();
+      _b_caloJet3_phi[_b_caloJet3_n] = jet->get_phi();
+      _b_caloJet3_eta[_b_caloJet3_n] = jet->get_eta();
+      ++_b_caloJet3_n;
+    }
+
+    //R=4
+    _b_caloJet4_n = 0;
+    JetMap* caloJets4_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r04");
+    for(JetMap::Iter iter = caloJets4_p->begin(); iter != caloJets4_p->end(); ++iter){
+      Jet *jet = iter->second;
+      
+      if(jet->get_pt() < _caloJetsPtMin) continue;
+      if(jet->get_eta() < _caloJetsEtaLow) continue;
+      if(jet->get_eta() > _caloJetsEtaHigh) continue;
+      
+      _b_caloJet4_pt[_b_caloJet4_n] = jet->get_pt();
+      _b_caloJet4_phi[_b_caloJet4_n] = jet->get_phi();
+      _b_caloJet4_eta[_b_caloJet4_n] = jet->get_eta();
+      ++_b_caloJet4_n;
+    }
+
+    //R=5
+    _b_caloJet5_n = 0;
+    JetMap* caloJets5_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r05");
+    for(JetMap::Iter iter = caloJets5_p->begin(); iter != caloJets5_p->end(); ++iter){
+      Jet *jet = iter->second;
+      
+      if(jet->get_pt() < _caloJetsPtMin) continue;
+      if(jet->get_eta() < _caloJetsEtaLow) continue;
+      if(jet->get_eta() > _caloJetsEtaHigh) continue;
+      
+      _b_caloJet5_pt[_b_caloJet5_n] = jet->get_pt();
+      _b_caloJet5_phi[_b_caloJet5_n] = jet->get_phi();
+      _b_caloJet5_eta[_b_caloJet5_n] = jet->get_eta();
+      ++_b_caloJet5_n;
     }
   }
 
   if(_doPFJets){
-    _b_pfJet_n = 0;
-
-    JetMap* pfJets_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r04");
-
-    for(JetMap::Iter iter = pfJets_p->begin(); iter != pfJets_p->end(); ++iter){
+    _b_pfJet2_n = 0;
+    JetMap* pfJets2_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r02");
+    for(JetMap::Iter iter = pfJets2_p->begin(); iter != pfJets2_p->end(); ++iter){
       Jet *jet = iter->second;
 
       if(jet->get_pt() < _pfJetsPtMin) continue;
       if(jet->get_eta() < _pfJetsEtaLow) continue;
       if(jet->get_eta() > _pfJetsEtaHigh) continue;
       
-      _b_pfJet_pt[_b_pfJet_n] = jet->get_pt();
-      _b_pfJet_phi[_b_pfJet_n] = jet->get_phi();
-      _b_pfJet_eta[_b_pfJet_n] = jet->get_eta();
-      ++_b_pfJet_n;
+      _b_pfJet2_pt[_b_pfJet2_n] = jet->get_pt();
+      _b_pfJet2_phi[_b_pfJet2_n] = jet->get_phi();
+      _b_pfJet2_eta[_b_pfJet2_n] = jet->get_eta();
+      ++_b_pfJet2_n;
+    }
+
+    _b_pfJet3_n = 0;
+    JetMap* pfJets3_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r03");
+    for(JetMap::Iter iter = pfJets3_p->begin(); iter != pfJets3_p->end(); ++iter){
+      Jet *jet = iter->second;
+
+      if(jet->get_pt() < _pfJetsPtMin) continue;
+      if(jet->get_eta() < _pfJetsEtaLow) continue;
+      if(jet->get_eta() > _pfJetsEtaHigh) continue;
+      
+      _b_pfJet3_pt[_b_pfJet3_n] = jet->get_pt();
+      _b_pfJet3_phi[_b_pfJet3_n] = jet->get_phi();
+      _b_pfJet3_eta[_b_pfJet3_n] = jet->get_eta();
+      ++_b_pfJet3_n;
+    }
+
+    _b_pfJet4_n = 0;
+    JetMap* pfJets4_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r04");
+    for(JetMap::Iter iter = pfJets4_p->begin(); iter != pfJets4_p->end(); ++iter){
+      Jet *jet = iter->second;
+
+      if(jet->get_pt() < _pfJetsPtMin) continue;
+      if(jet->get_eta() < _pfJetsEtaLow) continue;
+      if(jet->get_eta() > _pfJetsEtaHigh) continue;
+      
+      _b_pfJet4_pt[_b_pfJet4_n] = jet->get_pt();
+      _b_pfJet4_phi[_b_pfJet4_n] = jet->get_phi();
+      _b_pfJet4_eta[_b_pfJet4_n] = jet->get_eta();
+      ++_b_pfJet4_n;
+    }
+
+    _b_pfJet5_n = 0;
+    JetMap* pfJets5_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r05");
+    for(JetMap::Iter iter = pfJets5_p->begin(); iter != pfJets5_p->end(); ++iter){
+      Jet *jet = iter->second;
+
+      if(jet->get_pt() < _pfJetsPtMin) continue;
+      if(jet->get_eta() < _pfJetsEtaLow) continue;
+      if(jet->get_eta() > _pfJetsEtaHigh) continue;
+      
+      _b_pfJet5_pt[_b_pfJet5_n] = jet->get_pt();
+      _b_pfJet5_phi[_b_pfJet5_n] = jet->get_phi();
+      _b_pfJet5_eta[_b_pfJet5_n] = jet->get_eta();
+      ++_b_pfJet5_n;
     }
   }
+
+  if(_doTruthJets){
+    _b_truthJet2_n = 0;
+    JetMap* truthJets2_p = findNode::getClass<JetMap>(topNode, "AntiKt_Truth_r02");
+    for(JetMap::Iter iter = truthJets2_p->begin(); iter != truthJets2_p->end(); ++iter){
+      Jet *jet = iter->second;
+
+      if(jet->get_pt() < _truthJetsPtMin) continue;
+      if(jet->get_eta() < _truthJetsEtaLow) continue;
+      if(jet->get_eta() > _truthJetsEtaHigh) continue;
+      
+      _b_truthJet2_pt[_b_truthJet2_n] = jet->get_pt();
+      _b_truthJet2_phi[_b_truthJet2_n] = jet->get_phi();
+      _b_truthJet2_eta[_b_truthJet2_n] = jet->get_eta();
+      ++_b_truthJet2_n;
+    }
+
+    _b_truthJet3_n = 0;
+    JetMap* truthJets3_p = findNode::getClass<JetMap>(topNode, "AntiKt_Truth_r03");
+    for(JetMap::Iter iter = truthJets3_p->begin(); iter != truthJets3_p->end(); ++iter){
+      Jet *jet = iter->second;
+
+      if(jet->get_pt() < _truthJetsPtMin) continue;
+      if(jet->get_eta() < _truthJetsEtaLow) continue;
+      if(jet->get_eta() > _truthJetsEtaHigh) continue;
+      
+      _b_truthJet3_pt[_b_truthJet3_n] = jet->get_pt();
+      _b_truthJet3_phi[_b_truthJet3_n] = jet->get_phi();
+      _b_truthJet3_eta[_b_truthJet3_n] = jet->get_eta();
+      ++_b_truthJet3_n;
+    }
+
+    _b_truthJet4_n = 0;
+    JetMap* truthJets4_p = findNode::getClass<JetMap>(topNode, "AntiKt_Truth_r04");
+    for(JetMap::Iter iter = truthJets4_p->begin(); iter != truthJets4_p->end(); ++iter){
+      Jet *jet = iter->second;
+
+      if(jet->get_pt() < _truthJetsPtMin) continue;
+      if(jet->get_eta() < _truthJetsEtaLow) continue;
+      if(jet->get_eta() > _truthJetsEtaHigh) continue;
+      
+      _b_truthJet4_pt[_b_truthJet4_n] = jet->get_pt();
+      _b_truthJet4_phi[_b_truthJet4_n] = jet->get_phi();
+      _b_truthJet4_eta[_b_truthJet4_n] = jet->get_eta();
+      ++_b_truthJet4_n;
+    }
+
+    _b_truthJet5_n = 0;
+    JetMap* truthJets5_p = findNode::getClass<JetMap>(topNode, "AntiKt_Truth_r05");
+    for(JetMap::Iter iter = truthJets5_p->begin(); iter != truthJets5_p->end(); ++iter){
+      Jet *jet = iter->second;
+
+      if(jet->get_pt() < _truthJetsPtMin) continue;
+      if(jet->get_eta() < _truthJetsEtaLow) continue;
+      if(jet->get_eta() > _truthJetsEtaHigh) continue;
+      
+      _b_truthJet5_pt[_b_truthJet5_n] = jet->get_pt();
+      _b_truthJet5_phi[_b_truthJet5_n] = jet->get_phi();
+      _b_truthJet5_eta[_b_truthJet5_n] = jet->get_eta();
+      ++_b_truthJet5_n;
+    }
+  }
+    
 
   _tree->Fill();
 
