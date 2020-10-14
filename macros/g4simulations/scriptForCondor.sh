@@ -10,6 +10,7 @@ id=$1
 INPUTDIRNUM=$2
 JETDR=$3
 SEQ=$4
+OUTPUTDIR=$5
 
 QCDE=10
 JETEI=20
@@ -145,12 +146,7 @@ fi
 export MYINSTALL="$SPHENIX"/install
 
 source /opt/sphenix/core/bin/setup_local.sh $MYINSTALL
-tar -xzvf inTar.tar.gz
 
-source autogen.sh --prefix=$MYINSTALL
-make 
-make install
-
-root -l -b -q "Fun4All_G4_sPHENIX.C(10,\"/sphenix/user/dvp/gen/newQCD/$INPUTDIRNUM/hepmc_QCD${QCDE}GeV_R0${JETDR}jet${JETEI}GeV_${JETEF}GeV_eta0p45_seq00$SEQ.dat\",\"hepmc_QCD${QCDE}GeV_R0${JETDR}jet${JETEI}GeV_${JETEF}GeV_eta0p45_seq00${SEQ}_Job$id.root\")" >& log_hepmc_QCD${QCDE}GeV_R0${JETDR}jet${JETEI}GeV_${JETEF}GeV_eta0p45_seq00${j}_$id.log 
+root -l -b -q "Fun4All_G4_sPHENIX.C(48,\"/sphenix/user/dvp/gen/newQCD/$INPUTDIRNUM/hepmc_QCD${QCDE}GeV_R0${JETDR}jet${JETEI}GeV_${JETEF}GeV_eta0p45_seq00$SEQ.dat\",\"${OUTPUTDIR}/hepmc_QCD${QCDE}GeV_R0${JETDR}jet${JETEI}GeV_${JETEF}GeV_eta0p45_seq00${SEQ}_Job$id.root\")" >& ${OUTPUTDIR}/log_hepmc_QCD${QCDE}GeV_R0${JETDR}jet${JETEI}GeV_${JETEF}GeV_eta0p45_seq00${j}_$id.log 
 
 echo "JOB COMPLETE!"

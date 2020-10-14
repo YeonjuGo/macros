@@ -1,8 +1,5 @@
 Universe	= vanilla
 Executable 	= scriptForCondor.sh
 notification 	= Never
-Output  	= condor_$(Process).out
-Error		= condor_$(Process).err
-Log  		= condor_$(Process).log
 Initialdir  	= INITDIR
 

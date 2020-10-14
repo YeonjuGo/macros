@@ -17,7 +17,8 @@ do
 #                bash submit.sh $INDIR $DR 00$j
 #            done
         
-            for (( j=10; j<=99; j++ ))
+#            for (( j=10; j<=99; j++ ))
+            for (( j=10; j<=30; j++ ))
             do
                 bash submit.sh $INDIR $DR 0$j
             done
