@@ -1,23 +1,12 @@
-//ORIGINAL MACRO BY DENNIS PERIPELITSA
-//UPDATE BY CHRIS MCGINN (2019.08.01)
-#ifndef __TREE_MAKER_H__
-#define __TREE_MAKER_H__
+#ifndef __TREEMAKER_H__
+#define __TREEMAKER_H__
 
-//cpp
-#include <string>
+// --- need to check all these includes...
+#include <fun4all/SubsysReco.h>
 #include <vector>
 
-//ROOT
-#include "TEnv.h"
-#include "TFile.h"
 #include "TTree.h"
-
-//CoreSoftwaree
-#include <fun4all/SubsysReco.h>
-#include <calobase/RawTowerGeomContainer_Cylinderv1.h>
-#include <calobase/RawTowerGeomContainer.h>
-#include <calobase/RawTowerContainer.h>     
-#include <calobase/RawClusterContainer.h>
+#include "TFile.h"
 
 class PHCompositeNode;
 
@@ -26,177 +15,112 @@ class TreeMaker: public SubsysReco
 
  public:
 
-  TreeMaker(const std::string &name="TreeMaker.root");
+  TreeMaker(const std::string &name="TreeMaker.root", int embed_id = 0);
 
   int Init(PHCompositeNode*);
-  int process_event(PHCompositeNode*);  
+  int process_event(PHCompositeNode*);
   int End(PHCompositeNode*);
 
-  void SetVerbosity( int verb ) {
-    _verbosity = verb;
-  }
-
-  TEnv m_config;  
-
  private:
-
-  int _verbosity;
 
   TFile *_f;
 
   TTree *_tree;
 
-  bool _doCaloJets;
-  double _caloJetsPtMin;
-  double _caloJetsEtaLow;
-  double _caloJetsEtaHigh;
-
-  bool _doPFJets;
-  double _pfJetsPtMin;
-  double _pfJetsEtaLow;
-  double _pfJetsEtaHigh;
-
-  bool _doTruthJets;
-  double _truthJetsPtMin;
-  double _truthJetsEtaLow;
-  double _truthJetsEtaHigh;
-
   std::string _foutname;
 
-  float _b_truth_vx;
-  float _b_truth_vy;
-  float _b_truth_vz;
+  int _embed_id;
 
-  static const int nTowers = 100000;
-  int _b_tower_sim_n;
-  int _b_tower_sim_layer[nTowers];
-  float _b_tower_sim_E[nTowers];
-  float _b_tower_sim_eta[nTowers];
-  float _b_tower_sim_phi[nTowers];
+  static const int nJets = 200;
+  static const int nJets_truth = 50;
 
-  int _b_tower_raw_n;
-  int _b_tower_raw_layer[nTowers];
-  float _b_tower_raw_E[nTowers];
-  float _b_tower_raw_eta[nTowers];
-  float _b_tower_raw_phi[nTowers];
+  int _b_tjet2_n;
+  float _b_tjet2_pt[nJets_truth];
+  float _b_tjet2_eta[nJets_truth];
+  float _b_tjet2_phi[nJets_truth];
 
-  int _b_tower_calib_n;
-  int _b_tower_calib_layer[nTowers];
-  float _b_tower_calib_E[nTowers];
-  float _b_tower_calib_eta[nTowers];
-  float _b_tower_calib_phi[nTowers];
+  int _b_tjet3_n;
+  float _b_tjet3_pt[nJets_truth];
+  float _b_tjet3_eta[nJets_truth];
+  float _b_tjet3_phi[nJets_truth];
 
-  static const int nParts = 100000;
-  int _b_part_n;
-  float _b_part_pt[nParts];
-  float _b_part_eta[nParts];
-  float _b_part_phi[nParts];
-  float _b_part_m[nParts];
-  int _b_part_pdgid[nParts];
+  int _b_tjet4_n;
+  float _b_tjet4_pt[nJets_truth];
+  float _b_tjet4_eta[nJets_truth];
+  float _b_tjet4_phi[nJets_truth];
 
-  static const int nClusters = 10000;
-  //Standard photon reco. clusters
-  int _b_cluster_n;
-  float _b_cluster_eta[nClusters];
-  float _b_cluster_phi[nClusters];
-  float _b_cluster_E[nClusters];
+  int _b_tjet5_n;
+  float _b_tjet5_pt[nJets_truth];
+  float _b_tjet5_eta[nJets_truth];
+  float _b_tjet5_phi[nJets_truth];
 
-  //Towers w/in each cluster
-  int _b_cluster_ntower[nClusters];
-  std::vector< std::vector<float> > _b_cluster_tower_phi;
-  std::vector< std::vector<float> > _b_cluster_tower_eta;
-  std::vector< std::vector<int> > _b_cluster_tower_layer;
+  int _b_cjet2_n;
+  float _b_cjet2_pt[nJets];
+  float _b_cjet2_eta[nJets];
+  float _b_cjet2_phi[nJets];
 
-  //topoclusters, just emcal (effectively 2D version of topo algo)
-  int _b_clusterT_n;
-  float _b_clusterT_eta[nClusters];
-  float _b_clusterT_phi[nClusters];
-  float _b_clusterT_E[nClusters];
+  int _b_cjet3_n;
+  float _b_cjet3_pt[nJets];
+  float _b_cjet3_eta[nJets];
+  float _b_cjet3_phi[nJets];
 
-  //Towers w/in each cluster
-  int _b_clusterT_ntower[nClusters];
-  std::vector< std::vector<float> > _b_clusterT_tower_phi;
-  std::vector< std::vector<float> > _b_clusterT_tower_eta;
-  std::vector< std::vector<int> > _b_clusterT_tower_layer;
+  int _b_cjet4_n;
+  float _b_cjet4_pt[nJets];
+  float _b_cjet4_eta[nJets];
+  float _b_cjet4_phi[nJets];
 
-  //topoclusters, all three layers
-  int _b_clusterT2_n;
-  float _b_clusterT2_eta[nClusters];
-  float _b_clusterT2_phi[nClusters];
-  float _b_clusterT2_E[nClusters];
+  int _b_cjet5_n;
+  float _b_cjet5_pt[nJets];
+  float _b_cjet5_eta[nJets];
+  float _b_cjet5_phi[nJets];
 
- //Towers w/in each cluster
-  int _b_clusterT2_ntower[nClusters];
-  std::vector< std::vector<float> > _b_clusterT2_tower_phi;
-  std::vector< std::vector<float> > _b_clusterT2_tower_eta;
-  std::vector< std::vector<int> > _b_clusterT2_tower_layer;
+  int _b_ljet2_n;
+  float _b_ljet2_pt[nJets];
+  float _b_ljet2_eta[nJets];
+  float _b_ljet2_phi[nJets];
 
-  static const int nJets = 500;
-  int _b_caloJet2_n;
-  float _b_caloJet2_eta[nJets];
-  float _b_caloJet2_phi[nJets];
-  float _b_caloJet2_pt[nJets];
+  int _b_ljet3_n;
+  float _b_ljet3_pt[nJets];
+  float _b_ljet3_eta[nJets];
+  float _b_ljet3_phi[nJets];
 
-  int _b_caloJet3_n;
-  float _b_caloJet3_eta[nJets];
-  float _b_caloJet3_phi[nJets];
-  float _b_caloJet3_pt[nJets];
+  int _b_ljet4_n;
+  float _b_ljet4_pt[nJets];
+  float _b_ljet4_eta[nJets];
+  float _b_ljet4_phi[nJets];
 
-  int _b_caloJet4_n;
-  float _b_caloJet4_eta[nJets];
-  float _b_caloJet4_phi[nJets];
-  float _b_caloJet4_pt[nJets];
+  int _b_ljet5_n;
+  float _b_ljet5_pt[nJets];
+  float _b_ljet5_eta[nJets];
+  float _b_ljet5_phi[nJets];
 
-  int _b_caloJet5_n;
-  float _b_caloJet5_eta[nJets];
-  float _b_caloJet5_phi[nJets];
-  float _b_caloJet5_pt[nJets];
+  int _b_pjet2_n;
+  float _b_pjet2_pt[nJets];
+  float _b_pjet2_eta[nJets];
+  float _b_pjet2_phi[nJets];
 
-  int _b_pfJet2_n;
-  float _b_pfJet2_eta[nJets];
-  float _b_pfJet2_phi[nJets];
-  float _b_pfJet2_pt[nJets];
+  int _b_pjet3_n;
+  float _b_pjet3_pt[nJets];
+  float _b_pjet3_eta[nJets];
+  float _b_pjet3_phi[nJets];
 
-  int _b_pfJet3_n;
-  float _b_pfJet3_eta[nJets];
-  float _b_pfJet3_phi[nJets];
-  float _b_pfJet3_pt[nJets];
+  int _b_pjet4_n;
+  float _b_pjet4_pt[nJets];
+  float _b_pjet4_eta[nJets];
+  float _b_pjet4_phi[nJets];
 
-  int _b_pfJet4_n;
-  float _b_pfJet4_eta[nJets];
-  float _b_pfJet4_phi[nJets];
-  float _b_pfJet4_pt[nJets];
+  int _b_pjet5_n;
+  float _b_pjet5_pt[nJets];
+  float _b_pjet5_eta[nJets];
+  float _b_pjet5_phi[nJets];
 
-  int _b_pfJet5_n;
-  float _b_pfJet5_eta[nJets];
-  float _b_pfJet5_phi[nJets];
-  float _b_pfJet5_pt[nJets];
+  int _b_particle_n;
+  float _b_particle_pt[1000];
+  float _b_particle_eta[1000];
+  float _b_particle_phi[1000];
+  int _b_particle_pid[1000];
+  int _b_particle_embed[1000];
 
-  int _b_truthJet2_n;
-  float _b_truthJet2_eta[nJets];
-  float _b_truthJet2_phi[nJets];
-  float _b_truthJet2_pt[nJets];
-
-  int _b_truthJet3_n;
-  float _b_truthJet3_eta[nJets];
-  float _b_truthJet3_phi[nJets];
-  float _b_truthJet3_pt[nJets];
-
-  int _b_truthJet4_n;
-  float _b_truthJet4_eta[nJets];
-  float _b_truthJet4_phi[nJets];
-  float _b_truthJet4_pt[nJets];
-
-  int _b_truthJet5_n;
-  float _b_truthJet5_eta[nJets];
-  float _b_truthJet5_phi[nJets];
-  float _b_truthJet5_pt[nJets];
-
-  //void processCaloJet(JetMap* calojet, int cone, float ptMin, float etaLow, float etaHigh);
-  void processTowersSim(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer);
-  void processTowersRaw(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer);
-  void processTowersCalib(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer);
-  void processClusters(RawClusterContainer* clusters, RawTowerContainer* towersEM, RawTowerContainer* towersIH, RawTowerContainer* towersOH, RawTowerGeomContainer* geomEM, RawTowerGeomContainer* geomIH, RawTowerGeomContainer* geomOH, int* n, float* eta, float* phi, float* E, int* ntow, std::vector<std::vector<float> >* towphi, std::vector<std::vector<float> >* toweta, std::vector<std::vector<int> >* towlayer);
 };
 
-#endif 
+#endif // __TREEMAKER_H__

@@ -30,52 +30,27 @@
 #include "G4_ParticleFlow.C"
 #include "G4_DSTReader.C"
 #include "DisplayOn.C"
-
-#include <string>
-
 #include "TreeMaker.C"
-
-#include "TDatime.h"
-#include "TEnv.h"
-#include "TLorentzVector.h"
-#include "TRandom3.h"
-
-R__LOAD_LIBRARY(libTreeMaker.so)
-
+#include "TreeMaker.h"
 R__LOAD_LIBRARY(libfun4all.so)
 R__LOAD_LIBRARY(libg4testbench.so)
 R__LOAD_LIBRARY(libphhepmc.so)
 R__LOAD_LIBRARY(libPHPythia6.so)
 R__LOAD_LIBRARY(libPHPythia8.so)
+R__LOAD_LIBRARY(libTreeMaker.so)
 #endif
 
 using namespace std;
 
 
-int Fun4All_G4_sPHENIX(std::string inConfigFileName)
+int Fun4All_G4_sPHENIX(
+    const int nEvents = 1,
+    const char *inputFile = "/sphenix/data/data02/review_2017-08-02/single_particle/spacal2d/fieldmap/G4Hits_sPHENIX_e-_eta0_8GeV-0002.root",
+    const char *outputFile = "G4sPHENIX.root",
+    const bool doGun = true, 
+    string gunParticle = "photon", 
+    const char *embed_input_file = "https://www.phenix.bnl.gov/WWW/publish/phnxbld/sPHENIX/files/sPHENIX_G4Hits_sHijing_9-11fm_00000_00010.root")
 {
-  TEnv* config_p = new TEnv(inConfigFileName.c_str());
-
-  const int nEvents = config_p->GetValue("NEVENTS", 1);
-  const std::string outFileName = config_p->GetValue("OUTFILENAME", "G4sPHENIX.root");
-  const int zsADCThreshCEMC = config_p->GetValue("ZSADCTHRESHCEMC", 16);
-  const int zsADCThreshIHCal = config_p->GetValue("ZSADCTHRESHIHCAL", 0);
-  const int zsADCThreshOHCal = config_p->GetValue("ZSADCTHRESHOHCAL", 0);
-
-  const bool doGun = config_p->GetValue("DOGUN", 0);
-  const double etaVal = config_p->GetValue("GUNETAVAL", 0.0);
-  const double phiVal = config_p->GetValue("GUNPHIVAL", 0.0);
-  std::string gunParticle = config_p->GetValue("GUNPARTICLE", "proton");
-
-  const bool doPYTHIA8 = config_p->GetValue("DOPYTHIA8", 0);
-  //  const double pythia8PthatMin = config_p->GetValue("PYTHIA8PTHATMIN", 15.0);
-
-  const bool doHEPMC = config_p->GetValue("DOHEPMC", 0);
-  const std::string hepMCName = config_p->GetValue("HEPMCNAME", "");
-
-
-  const bool doCaloJets = config_p->GetValue("DOCALOJETS", 0);
-  const bool doPFJets = config_p->GetValue("DOPFJETS", 0);
 
   //===============
   // Input options
@@ -91,10 +66,10 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
   const bool readhits = false;
   // Or:
   // read files in HepMC format (typically output from event generators like hijing or pythia)
-  const bool readhepmc = doHEPMC;  // read HepMC files
+  const bool readhepmc = true;  // read HepMC files
   // Or:
   // Use pythia
-  const bool runpythia8 = doPYTHIA8;
+  const bool runpythia8 = false;
   const bool runpythia6 = false;
   //
   // **** And ****
@@ -128,11 +103,11 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
   bool do_pipe = true;
   bool do_mvtxservice = true;
 
-  bool do_tracking = false;
+  bool do_tracking = true;
   bool do_tracking_cell = do_tracking && false;
-  bool do_tracking_cluster = do_tracking_cell && false;
-  bool do_tracking_track = do_tracking_cluster && false;
-  bool do_tracking_eval = do_tracking_track && false;
+  bool do_tracking_cluster = do_tracking_cell && true;
+  bool do_tracking_track = do_tracking_cluster && true;
+  bool do_tracking_eval = do_tracking_track && true;
 
   bool do_pstof = false;
 
@@ -163,6 +138,8 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
   bool do_femc_cluster = do_femc_twr && true;
   bool do_femc_eval = do_femc_cluster && true;
 
+  bool do_epd = false;
+
   //! forward flux return plug door. Out of acceptance and off by default.
   bool do_plugdoor = false;
 
@@ -171,7 +148,7 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
 
   bool do_calotrigger = true && do_cemc_twr && do_hcalin_twr && do_hcalout_twr;
 
-  bool do_jet_reco = doCaloJets;
+  bool do_jet_reco = true;
   bool do_jet_eval = do_jet_reco && false;
 
   // HI Jet Reco for p+Au / Au+Au collisions (default is false for
@@ -182,7 +159,7 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
   // 3-D topoCluster reconstruction, potentially in all calorimeter layers
   bool do_topoCluster = true && do_cemc_twr && do_hcalin_twr && do_hcalout_twr;
   // particle flow jet reconstruction - needs topoClusters!
-  bool do_particle_flow = doPFJets && do_topoCluster;
+  bool do_particle_flow = true && do_topoCluster;
 
   bool do_dst_compress = false;
 
@@ -192,16 +169,16 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
   // Load libraries
   //---------------
 
-  gSystem->Load("libTreeMaker.so");
   gSystem->Load("libfun4all.so");
   gSystem->Load("libg4detectors.so");
   gSystem->Load("libphhepmc.so");
   gSystem->Load("libg4testbench.so");
   gSystem->Load("libg4eval.so");
   gSystem->Load("libg4intt.so");
+  gSystem->Load("libTreeMaker.so");
   // establish the geometry and reconstruction setup
   gROOT->LoadMacro("G4Setup_sPHENIX.C");
-  G4Init(do_tracking, do_pstof, do_cemc, do_hcalin, do_magnet, do_hcalout, do_pipe, do_plugdoor, do_femc, do_mvtxservice);
+  G4Init(do_tracking, do_pstof, do_cemc, do_hcalin, do_magnet, do_hcalout, do_pipe, do_plugdoor, do_femc, do_epd, do_mvtxservice);
 
   int absorberactive = 1;  // set to 1 to make all absorbers active volumes
   //  const string magfield = "1.5"; // alternatively to specify a constant magnetic field, give a float number, which will be translated to solenoidal field in T, if string use as fieldmap name (including path)
@@ -318,42 +295,16 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
 
     if (usegun)
     {
-      double mass = 0.0;
-      if(gunParticle.find("proton") != std::string::npos){
-	mass = 0.9382720813;
-      }
-      else if(gunParticle.find("photon") != std::string::npos){
-	gunParticle = "gamma";
-	mass = 0.0;
-      }
-      else if(gunParticle.find("gamma") != std::string::npos){
-	mass = 0.0;
-      }
-      else{
-	std::cout << "Requested particle \'" << gunParticle << "\' not yet encoded. return 1" << std::endl;
-	return 1;
-      }
-
-
       PHG4ParticleGun *gun = new PHG4ParticleGun();
       //  gun->set_name("anti_proton");
-      TLorentzVector tL;
-      tL.SetPtEtaPhiM(10.0/std::cosh(etaVal), etaVal, phiVal, mass);
-      gun->set_name(gunParticle.c_str());
-      gun->set_mom(tL.Px(), tL.Py(), tL.Pz());
-
-      TRandom3* randGen_p = new TRandom3(0);
-      //Based on distributions at the bottom here:
-      //https://cds.cern.ch/record/1704291/plots
-      gun->set_vtx(randGen_p->Gaus(0.0, 0.0025), randGen_p->Gaus(0.0, 0.0025), randGen_p->Gaus(0.0, 5.5));
-      delete randGen_p;
-
+      gun->set_name("geantino");
+      gun->set_vtx(0, 0, 0);
+      gun->set_mom(10, 0, 0.01);
       // gun->AddParticle("geantino",1.7776,-0.4335,0.);
       // gun->AddParticle("geantino",1.7709,-0.4598,0.);
       // gun->AddParticle("geantino",2.5621,0.60964,0.);
       // gun->AddParticle("geantino",1.8121,0.253,0.);
-      se->registerSubsystem(gun);
-      /*
+      //	  se->registerSubsystem(gun);
       PHG4ParticleGenerator *pgen = new PHG4ParticleGenerator();
       pgen->set_name("geantino");
       pgen->set_z_range(0, 0);
@@ -361,7 +312,6 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
       pgen->set_mom_range(10, 10);
       pgen->set_phi_range(5.3 / 180. * TMath::Pi(), 5.7 / 180. * TMath::Pi());
       se->registerSubsystem(pgen);
-      */
     }
 
     // If "readhepMC" is also set, the Upsilons will be embedded in Hijing events, if 'particles" is set, the Upsilons will be embedded in whatever particles are thrown
@@ -421,10 +371,10 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
 
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,00,0)
     G4Setup(absorberactive, magfield, EDecayType::kAll,
-            do_tracking, do_pstof, do_cemc, do_hcalin, do_magnet, do_hcalout, do_pipe,do_plugdoor, do_femc, do_mvtxservice, magfield_rescale);
+            do_tracking, do_pstof, do_cemc, do_hcalin, do_magnet, do_hcalout, do_pipe,do_plugdoor, do_femc, do_epd, do_mvtxservice, magfield_rescale);
 #else
     G4Setup(absorberactive, magfield, TPythia6Decayer::kAll,
-            do_tracking, do_pstof, do_cemc, do_hcalin, do_magnet, do_hcalout, do_pipe,do_plugdoor, do_femc, do_mvtxservice, magfield_rescale);
+            do_tracking, do_pstof, do_cemc, do_hcalin, do_magnet, do_hcalout, do_pipe,do_plugdoor, do_femc, do_epd, do_mvtxservice, magfield_rescale);
 #endif
   }
 
@@ -456,17 +406,17 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
   // CEMC towering and clustering
   //-----------------------------
 
-  if (do_cemc_twr) CEMC_Towers(zsADCThreshCEMC);
+  if (do_cemc_twr) CEMC_Towers();
   if (do_cemc_cluster) CEMC_Clusters();
 
   //-----------------------------
   // HCAL towering and clustering
   //-----------------------------
 
-  if (do_hcalin_twr) HCALInner_Towers(zsADCThreshIHCal);
+  if (do_hcalin_twr) HCALInner_Towers();
   if (do_hcalin_cluster) HCALInner_Clusters();
 
-  if (do_hcalout_twr) HCALOuter_Towers(zsADCThreshOHCal);
+  if (do_hcalout_twr) HCALOuter_Towers();
   if (do_hcalout_cluster) HCALOuter_Clusters();
 
   // if enabled, do topoClustering early, upstream of any possible jet reconstruction
@@ -540,17 +490,17 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
   // Simulation evaluation
   //----------------------
 
-  if (do_tracking_eval) Tracking_Eval(string(outFileName) + "_g4svtx_eval.root");
+  if (do_tracking_eval) Tracking_Eval(string(outputFile) + "_g4svtx_eval.root");
 
-  if (do_cemc_eval) CEMC_Eval(string(outFileName) + "_g4cemc_eval.root");
+  if (do_cemc_eval) CEMC_Eval(string(outputFile) + "_g4cemc_eval.root");
 
-  if (do_hcalin_eval) HCALInner_Eval(string(outFileName) + "_g4hcalin_eval.root");
+  if (do_hcalin_eval) HCALInner_Eval(string(outputFile) + "_g4hcalin_eval.root");
 
-  if (do_hcalout_eval) HCALOuter_Eval(string(outFileName) + "_g4hcalout_eval.root");
+  if (do_hcalout_eval) HCALOuter_Eval(string(outputFile) + "_g4hcalout_eval.root");
 
-  if (do_femc_eval) FEMC_Eval(string(outFileName) + "_g4femc_eval.root");
+  if (do_femc_eval) FEMC_Eval(string(outputFile) + "_g4femc_eval.root");
 
-  if (do_jet_eval) Jet_Eval(string(outFileName) + "_g4jet_eval.root");
+  if (do_jet_eval) Jet_Eval(string(outputFile) + "_g4jet_eval.root");
 
   //--------------
   // IO management
@@ -563,13 +513,13 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
 
     // Hits file
     Fun4AllInputManager *hitsin = new Fun4AllDstInputManager("DSTin");
-    //    hitsin->fileopen(inputFile);
+    hitsin->fileopen(inputFile);
     se->registerInputManager(hitsin);
   }
 
   if (do_embedding)
   {
-    if (true/*embed_input_file == NULL*/)
+    if (embed_input_file == NULL)
     {
       cout << "Missing embed_input_file! Exit";
       exit(3);
@@ -579,7 +529,7 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
     gSystem->Load("libg4dst.so");
 
     Fun4AllDstInputManager *in1 = new Fun4AllNoSyncDstInputManager("DSTinEmbed");
-    //    in1->AddFile(embed_input_file); // if one use a single input file
+    in1->AddFile(embed_input_file); // if one use a single input file
 //    in1->AddListFile(embed_input_file);  // Recommended: if one use a text list of many input files
     in1->Repeat(); // if file(or filelist) is exhausted, start from beginning
     se->registerInputManager(in1);
@@ -592,7 +542,7 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
 
     Fun4AllHepMCInputManager *in = new Fun4AllHepMCInputManager("HepMCInput_1");
     se->registerInputManager(in);
-    se->fileopen(in->Name().c_str(), hepMCName.c_str());
+    se->fileopen(in->Name().c_str(), inputFile);
     //in->set_vertex_distribution_width(100e-4,100e-4,30,0);//optional collision smear in space, time
     //in->set_vertex_distribution_mean(0,0,1,0);//optional collision central position shift in space, time
     // //optional choice of vertex distribution function in space, time
@@ -648,7 +598,7 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
     //Convert DST to human command readable TTree for quick poke around the outputs
     gROOT->LoadMacro("G4_DSTReader.C");
 
-    G4DSTreader(outFileName.c_str(),  //
+    G4DSTreader(outputFile,  //
                 /*int*/ absorberactive,
                 /*bool*/ do_tracking,
                 /*bool*/ do_pstof,
@@ -656,35 +606,14 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
                 /*bool*/ do_hcalin,
                 /*bool*/ do_magnet,
                 /*bool*/ do_hcalout,
+                /*bool*/ do_epd,
                 /*bool*/ do_cemc_twr,
                 /*bool*/ do_hcalin_twr,
                 /*bool*/ do_hcalout_twr);
   }
 
-  TDatime* date = new TDatime();
-  const std::string dateStr = std::to_string(date->GetDate());
-  delete date;
-
-  std::string outFileNameAB = outFileName;
-  if(outFileNameAB.find(".") != std::string::npos) outFileNameAB = outFileNameAB.substr(0, outFileNameAB.rfind("."));
-  outFileNameAB = outFileNameAB + "_TreeMaker_" + dateStr + ".root";
-
-  TreeMaker *tt = new TreeMaker( outFileNameAB );
-  tt->SetVerbosity( 1 );
-
-  THashList* hash_p = (THashList*)config_p->GetTable();
-  std::cout << "FINAL CONFIGURATION: " << std::endl;
-  for(Int_t entry = 0; entry < hash_p->GetEntries(); ++entry){
-    std::cout << " CONFIG " << entry << ": \'" << hash_p->At(entry)->GetName() << "\', \'" << config_p->GetValue(hash_p->At(entry)->GetName(), "") << "\'." << std::endl;
-
-    tt->m_config.SetValue(hash_p->At(entry)->GetName(), config_p->GetValue(hash_p->At(entry)->GetName(), ""));
-  }
-  se->registerSubsystem( tt );
-
-
-
   if(do_write_output) {
-    Fun4AllDstOutputManager *out = new Fun4AllDstOutputManager("DSTOUT", outFileName);
+    Fun4AllDstOutputManager *out = new Fun4AllDstOutputManager("DSTOUT", outputFile);
     if (do_dst_compress) DstCompress(out);
     se->registerOutputManager(out);
   }
@@ -712,6 +641,9 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
       cin >> i;
     }
 
+  TreeMaker *tm = new TreeMaker( outputFile );
+  se->registerSubsystem( tm );
+
   se->run(nEvents);
 
   //-----
@@ -723,9 +655,6 @@ int Fun4All_G4_sPHENIX(std::string inConfigFileName)
   std::cout << "All done" << std::endl;
   delete se;
   gSystem->Exit(0);
-
-  delete config_p;
-
   return 0;
 }
 

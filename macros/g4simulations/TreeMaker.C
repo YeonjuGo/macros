@@ -1,620 +1,578 @@
-//ORIGINAL MACRO BY DENNIS PERIPELITSA
-//UPDATE BY CHRIS MCGINN (2019.08.01)
-
-//cpp
-#include <iostream>
-
-//ROOT
-#include "TLorentzVector.h"
-#include "TMath.h"
-
-//Local
 #include "TreeMaker.h"
 
-//CoreSoftware
-#include <fun4all/Fun4AllServer.h>
 #include <phool/getClass.h>
+#include <fun4all/Fun4AllServer.h>
+
 #include <phool/PHCompositeNode.h>
-#include <calobase/RawTower.h>
-#include <calobase/RawTowerGeom.h>
-#include <calobase/RawCluster.h>
-#include <calobase/RawClusterContainer.h>
-#include <g4jets/Jet.h>
+
+#include "TLorentzVector.h"
+#include <iostream>
+
 #include <g4jets/JetMap.h>
+#include <g4jets/Jet.h>
 
-#include <g4main/PHG4Particle.h>
 #include <g4main/PHG4TruthInfoContainer.h>
-#include <g4main/PHG4VtxPoint.h>
+#include <g4main/PHG4Particle.h>
 
-TreeMaker::TreeMaker(const std::string &name) : SubsysReco("OUTPUT_TREE")
+#include <phhepmc/PHHepMCGenEvent.h>
+#include <phhepmc/PHHepMCGenEventMap.h>
+
+
+TreeMaker::TreeMaker(const std::string &name, int embed_id) : SubsysReco("TREEMAKER")
 {
+
   _foutname = name;
-  _verbosity = 0;
+  _embed_id = embed_id;
+
 }
+
 
 int TreeMaker::Init(PHCompositeNode *topNode)
 {
+
   _f = new TFile( _foutname.c_str(), "RECREATE");
 
-  _f->cd();
-  m_config.Write("config", TObject::kOverwrite);
+  std::cout << " making a file = " <<  _foutname.c_str() << " , _f = " << _f << std::endl;
+  
+  _tree = new TTree("ttree","a persevering date tree");
+  
+  std::cout << " tree is at " << _tree << std::endl;
 
-  _doCaloJets = m_config.GetValue("DOCALOJETS", 0);
-  _caloJetsPtMin = m_config.GetValue("CALOJETSPTMIN", 10.0);
-  _caloJetsEtaLow = m_config.GetValue("CALOJETSETALOW", -1.1);
-  _caloJetsEtaHigh = m_config.GetValue("CALOJETSETAHIGH", 1.1);
+  _tree->Branch("tjet2_n", &_b_tjet2_n,"tjet2_n/I");
+  _tree->Branch("tjet2_pt", _b_tjet2_pt,"tjet2_pt[tjet2_n]/F");
+  _tree->Branch("tjet2_eta", _b_tjet2_eta,"tjet2_eta[tjet2_n]/F");
+  _tree->Branch("tjet2_phi", _b_tjet2_phi,"tjet2_phi[tjet2_n]/F");
 
-  _doPFJets = m_config.GetValue("DOPFJETS", 0);
-  _pfJetsPtMin = m_config.GetValue("PFJETSPTMIN", 10.0);
-  _pfJetsEtaLow = m_config.GetValue("PFJETSETALOW", -1.1);
-  _pfJetsEtaHigh = m_config.GetValue("PFJETSETAHIGH", 1.1);
+  _tree->Branch("cjet2_n", &_b_cjet2_n,"cjet2_n/I");
+  _tree->Branch("cjet2_pt", _b_cjet2_pt,"cjet2_pt[cjet2_n]/F");
+  _tree->Branch("cjet2_eta", _b_cjet2_eta,"cjet2_eta[cjet2_n]/F");
+  _tree->Branch("cjet2_phi", _b_cjet2_phi,"cjet2_phi[cjet2_n]/F");
 
-  _doTruthJets = m_config.GetValue("DOTRUTHJETS", 0);
-  _truthJetsPtMin = m_config.GetValue("TRUTHJETSPTMIN", 10.0);
-  _truthJetsEtaLow = m_config.GetValue("TRUTHJETSETALOW", -1.1);
-  _truthJetsEtaHigh = m_config.GetValue("TRUTHJETSETAHIGH", 1.1);
+  _tree->Branch("ljet2_n", &_b_ljet2_n,"ljet2_n/I");
+  _tree->Branch("ljet2_pt", _b_ljet2_pt,"ljet2_pt[ljet2_n]/F");
+  _tree->Branch("ljet2_eta", _b_ljet2_eta,"ljet2_eta[ljet2_n]/F");
+  _tree->Branch("ljet2_phi", _b_ljet2_phi,"ljet2_phi[ljet2_n]/F");
 
-  _tree = new TTree("aftburnTree","");
+  _tree->Branch("pjet2_n", &_b_pjet2_n,"pjet2_n/I");
+  _tree->Branch("pjet2_pt", _b_pjet2_pt,"pjet2_pt[pjet2_n]/F");
+  _tree->Branch("pjet2_eta", _b_pjet2_eta,"pjet2_eta[pjet2_n]/F");
+  _tree->Branch("pjet2_phi", _b_pjet2_phi,"pjet2_phi[pjet2_n]/F");
 
-  _tree->Branch("truth_vx", &_b_truth_vx, "truth_vx/F");
-  _tree->Branch("truth_vy", &_b_truth_vy, "truth_vy/F");
-  _tree->Branch("truth_vz", &_b_truth_vz, "truth_vz/F");
+  _tree->Branch("tjet3_n", &_b_tjet3_n,"tjet3_n/I");
+  _tree->Branch("tjet3_pt", _b_tjet3_pt,"tjet3_pt[tjet3_n]/F");
+  _tree->Branch("tjet3_eta", _b_tjet3_eta,"tjet3_eta[tjet3_n]/F");
+  _tree->Branch("tjet3_phi", _b_tjet3_phi,"tjet3_phi[tjet3_n]/F");
 
-  _tree->Branch("tower_sim_n",&_b_tower_sim_n, "tower_sim_n/I");
-  _tree->Branch("tower_sim_layer",_b_tower_sim_layer, "tower_sim_layer[tower_sim_n]/I");
-  _tree->Branch("tower_sim_E",_b_tower_sim_E, "tower_sim_E[tower_sim_n]/F");
-  _tree->Branch("tower_sim_eta",_b_tower_sim_eta, "tower_sim_eta[tower_sim_n]/F");
-  _tree->Branch("tower_sim_phi",_b_tower_sim_phi, "tower_sim_phi[tower_sim_n]/F");
+  _tree->Branch("cjet3_n", &_b_cjet3_n,"cjet3_n/I");
+  _tree->Branch("cjet3_pt", _b_cjet3_pt,"cjet3_pt[cjet3_n]/F");
+  _tree->Branch("cjet3_eta", _b_cjet3_eta,"cjet3_eta[cjet3_n]/F");
+  _tree->Branch("cjet3_phi", _b_cjet3_phi,"cjet3_phi[cjet3_n]/F");
 
-  _tree->Branch("tower_raw_n",&_b_tower_raw_n, "tower_raw_n/I");
-  _tree->Branch("tower_raw_layer",_b_tower_raw_layer, "tower_raw_layer[tower_raw_n]/I");
-  _tree->Branch("tower_raw_E",_b_tower_raw_E, "tower_raw_E[tower_raw_n]/F");
-  _tree->Branch("tower_raw_eta",_b_tower_raw_eta, "tower_raw_eta[tower_raw_n]/F");
-  _tree->Branch("tower_raw_phi",_b_tower_raw_phi, "tower_raw_phi[tower_raw_n]/F");
+  _tree->Branch("ljet3_n", &_b_ljet3_n,"ljet3_n/I");
+  _tree->Branch("ljet3_pt", _b_ljet3_pt,"ljet3_pt[ljet3_n]/F");
+  _tree->Branch("ljet3_eta", _b_ljet3_eta,"ljet3_eta[ljet3_n]/F");
+  _tree->Branch("ljet3_phi", _b_ljet3_phi,"ljet3_phi[ljet3_n]/F");
 
-  _tree->Branch("tower_calib_n",&_b_tower_calib_n, "tower_calib_n/I");
-  _tree->Branch("tower_calib_layer",_b_tower_calib_layer, "tower_calib_layer[tower_calib_n]/I");
-  _tree->Branch("tower_calib_E",_b_tower_calib_E, "tower_calib_E[tower_calib_n]/F");
-  _tree->Branch("tower_calib_eta",_b_tower_calib_eta, "tower_calib_eta[tower_calib_n]/F");
-  _tree->Branch("tower_calib_phi",_b_tower_calib_phi, "tower_calib_phi[tower_calib_n]/F");
+  _tree->Branch("pjet3_n", &_b_pjet3_n,"pjet3_n/I");
+  _tree->Branch("pjet3_pt", _b_pjet3_pt,"pjet3_pt[pjet3_n]/F");
+  _tree->Branch("pjet3_eta", _b_pjet3_eta,"pjet3_eta[pjet3_n]/F");
+  _tree->Branch("pjet3_phi", _b_pjet3_phi,"pjet3_phi[pjet3_n]/F");
 
-  _tree->Branch("cluster_n", &_b_cluster_n, "cluster_n/I");
-  _tree->Branch("cluster_E", _b_cluster_E, "cluster_E[cluster_n]/F");
-  _tree->Branch("cluster_eta", _b_cluster_eta, "cluster_eta[cluster_n]/F");
-  _tree->Branch("cluster_phi", _b_cluster_phi, "cluster_phi[cluster_n]/F");
+  _tree->Branch("tjet4_n", &_b_tjet4_n,"tjet4_n/I");
+  _tree->Branch("tjet4_pt", _b_tjet4_pt,"tjet4_pt[tjet4_n]/F");
+  _tree->Branch("tjet4_eta", _b_tjet4_eta,"tjet4_eta[tjet4_n]/F");
+  _tree->Branch("tjet4_phi", _b_tjet4_phi,"tjet4_phi[tjet4_n]/F");
 
-  _tree->Branch("cluster_ntower", _b_cluster_ntower, "cluster_ntower[cluster_n]/I");
-  _tree->Branch("cluster_tower_phi", &_b_cluster_tower_phi);
-  _tree->Branch("cluster_tower_eta", &_b_cluster_tower_eta);
-  _tree->Branch("cluster_tower_layer", &_b_cluster_tower_layer);
+  _tree->Branch("cjet4_n", &_b_cjet4_n,"cjet4_n/I");
+  _tree->Branch("cjet4_pt", _b_cjet4_pt,"cjet4_pt[cjet4_n]/F");
+  _tree->Branch("cjet4_eta", _b_cjet4_eta,"cjet4_eta[cjet4_n]/F");
+  _tree->Branch("cjet4_phi", _b_cjet4_phi,"cjet4_phi[cjet4_n]/F");
 
-  _tree->Branch("clusterT_n", &_b_clusterT_n, "clusterT_n/I");
-  _tree->Branch("clusterT_E", _b_clusterT_E, "clusterT_E[clusterT_n]/F");
-  _tree->Branch("clusterT_eta", _b_clusterT_eta, "clusterT_eta[clusterT_n]/F");
-  _tree->Branch("clusterT_phi", _b_clusterT_phi, "clusterT_phi[clusterT_n]/F");
+  _tree->Branch("ljet4_n", &_b_ljet4_n,"ljet4_n/I");
+  _tree->Branch("ljet4_pt", _b_ljet4_pt,"ljet4_pt[ljet4_n]/F");
+  _tree->Branch("ljet4_eta", _b_ljet4_eta,"ljet4_eta[ljet4_n]/F");
+  _tree->Branch("ljet4_phi", _b_ljet4_phi,"ljet4_phi[ljet4_n]/F");
 
-  _tree->Branch("clusterT_ntower", _b_clusterT_ntower, "clusterT_ntower[clusterT_n]/I");
-  _tree->Branch("clusterT_tower_phi", &_b_clusterT_tower_phi);
-  _tree->Branch("clusterT_tower_eta", &_b_clusterT_tower_eta);
-  _tree->Branch("clusterT_tower_layer", &_b_clusterT_tower_layer);
+  _tree->Branch("pjet4_n", &_b_pjet4_n,"pjet4_n/I");
+  _tree->Branch("pjet4_pt", _b_pjet4_pt,"pjet4_pt[pjet4_n]/F");
+  _tree->Branch("pjet4_eta", _b_pjet4_eta,"pjet4_eta[pjet4_n]/F");
+  _tree->Branch("pjet4_phi", _b_pjet4_phi,"pjet4_phi[pjet4_n]/F");
 
-  _tree->Branch("clusterT2_n", &_b_clusterT2_n, "clusterT2_n/I");
-  _tree->Branch("clusterT2_E", _b_clusterT2_E, "clusterT2_E[clusterT2_n]/F");
-  _tree->Branch("clusterT2_eta", _b_clusterT2_eta, "clusterT2_eta[clusterT2_n]/F");
-  _tree->Branch("clusterT2_phi", _b_clusterT2_phi, "clusterT2_phi[clusterT2_n]/F");
+  _tree->Branch("tjet5_n", &_b_tjet5_n,"tjet5_n/I");
+  _tree->Branch("tjet5_pt", _b_tjet5_pt,"tjet5_pt[tjet5_n]/F");
+  _tree->Branch("tjet5_eta", _b_tjet5_eta,"tjet5_eta[tjet5_n]/F");
+  _tree->Branch("tjet5_phi", _b_tjet5_phi,"tjet5_phi[tjet5_n]/F");
 
-  _tree->Branch("clusterT2_ntower", _b_clusterT2_ntower, "clusterT2_ntower[clusterT2_n]/I");
-  _tree->Branch("clusterT2_tower_phi", &_b_clusterT2_tower_phi);
-  _tree->Branch("clusterT2_tower_eta", &_b_clusterT2_tower_eta);
-  _tree->Branch("clusterT2_tower_layer", &_b_clusterT2_tower_layer);
+  _tree->Branch("cjet5_n", &_b_cjet5_n,"cjet5_n/I");
+  _tree->Branch("cjet5_pt", _b_cjet5_pt,"cjet5_pt[cjet5_n]/F");
+  _tree->Branch("cjet5_eta", _b_cjet5_eta,"cjet5_eta[cjet5_n]/F");
+  _tree->Branch("cjet5_phi", _b_cjet5_phi,"cjet5_phi[cjet5_n]/F");
 
-  _tree->Branch("part_n",&_b_part_n, "part_n/I");
-  _tree->Branch("part_pt",_b_part_pt, "part_pt[part_n]/F");
-  _tree->Branch("part_eta",_b_part_eta, "part_eta[part_n]/F");
-  _tree->Branch("part_phi",_b_part_phi, "part_phi[part_n]/F");
-  _tree->Branch("part_m",_b_part_m, "part_m[part_n]/F");
-  _tree->Branch("part_pdgid",_b_part_pdgid, "part_pdgid[part_n]/I");
+  _tree->Branch("ljet5_n", &_b_ljet5_n,"ljet5_n/I");
+  _tree->Branch("ljet5_pt", _b_ljet5_pt,"ljet5_pt[ljet5_n]/F");
+  _tree->Branch("ljet5_eta", _b_ljet5_eta,"ljet5_eta[ljet5_n]/F");
+  _tree->Branch("ljet5_phi", _b_ljet5_phi,"ljet5_phi[ljet5_n]/F");
 
-  if(_doCaloJets){
-    _tree->Branch("caloJet2_n", &_b_caloJet2_n, "caloJet2_n/I");
-    _tree->Branch("caloJet2_eta", _b_caloJet2_eta, "caloJet2_eta[caloJet2_n]/F");
-    _tree->Branch("caloJet2_phi", _b_caloJet2_phi, "caloJet2_phi[caloJet2_n]/F");
-    _tree->Branch("caloJet2_pt", _b_caloJet2_pt, "caloJet2_pt[caloJet2_n]/F");
+  _tree->Branch("pjet5_n", &_b_pjet5_n,"pjet5_n/I");
+  _tree->Branch("pjet5_pt", _b_pjet5_pt,"pjet5_pt[pjet5_n]/F");
+  _tree->Branch("pjet5_eta", _b_pjet5_eta,"pjet5_eta[pjet5_n]/F");
+  _tree->Branch("pjet5_phi", _b_pjet5_phi,"pjet5_phi[pjet5_n]/F");
 
-    _tree->Branch("caloJet3_n", &_b_caloJet3_n, "caloJet3_n/I");
-    _tree->Branch("caloJet3_eta", _b_caloJet3_eta, "caloJet3_eta[caloJet3_n]/F");
-    _tree->Branch("caloJet3_phi", _b_caloJet3_phi, "caloJet3_phi[caloJet3_n]/F");
-    _tree->Branch("caloJet3_pt", _b_caloJet3_pt, "caloJet3_pt[caloJet3_n]/F");
-
-    _tree->Branch("caloJet4_n", &_b_caloJet4_n, "caloJet4_n/I");
-    _tree->Branch("caloJet4_eta", _b_caloJet4_eta, "caloJet4_eta[caloJet4_n]/F");
-    _tree->Branch("caloJet4_phi", _b_caloJet4_phi, "caloJet4_phi[caloJet4_n]/F");
-    _tree->Branch("caloJet4_pt", _b_caloJet4_pt, "caloJet4_pt[caloJet4_n]/F");
-
-    _tree->Branch("caloJet5_n", &_b_caloJet5_n, "caloJet5_n/I");
-    _tree->Branch("caloJet5_eta", _b_caloJet5_eta, "caloJet5_eta[caloJet5_n]/F");
-    _tree->Branch("caloJet5_phi", _b_caloJet5_phi, "caloJet5_phi[caloJet5_n]/F");
-    _tree->Branch("caloJet5_pt", _b_caloJet5_pt, "caloJet5_pt[caloJet5_n]/F");
-  }
-
-  if(_doPFJets){
-    _tree->Branch("pfJet2_n", &_b_pfJet2_n, "pfJet2_n/I");
-    _tree->Branch("pfJet2_eta", _b_pfJet2_eta, "pfJet2_eta[pfJet2_n]/F");
-    _tree->Branch("pfJet2_phi", _b_pfJet2_phi, "pfJet2_phi[pfJet2_n]/F");
-    _tree->Branch("pfJet2_pt", _b_pfJet2_pt, "pfJet2_pt[pfJet2_n]/F");
-
-    _tree->Branch("pfJet3_n", &_b_pfJet3_n, "pfJet3_n/I");
-    _tree->Branch("pfJet3_eta", _b_pfJet3_eta, "pfJet3_eta[pfJet3_n]/F");
-    _tree->Branch("pfJet3_phi", _b_pfJet3_phi, "pfJet3_phi[pfJet3_n]/F");
-    _tree->Branch("pfJet3_pt", _b_pfJet3_pt, "pfJet3_pt[pfJet3_n]/F");
-
-    _tree->Branch("pfJet4_n", &_b_pfJet4_n, "pfJet4_n/I");
-    _tree->Branch("pfJet4_eta", _b_pfJet4_eta, "pfJet4_eta[pfJet4_n]/F");
-    _tree->Branch("pfJet4_phi", _b_pfJet4_phi, "pfJet4_phi[pfJet4_n]/F");
-    _tree->Branch("pfJet4_pt", _b_pfJet4_pt, "pfJet4_pt[pfJet4_n]/F");
-
-    _tree->Branch("pfJet5_n", &_b_pfJet5_n, "pfJet5_n/I");
-    _tree->Branch("pfJet5_eta", _b_pfJet5_eta, "pfJet5_eta[pfJet5_n]/F");
-    _tree->Branch("pfJet5_phi", _b_pfJet5_phi, "pfJet5_phi[pfJet5_n]/F");
-    _tree->Branch("pfJet5_pt", _b_pfJet5_pt, "pfJet5_pt[pfJet5_n]/F");
-  }
-
-  if(_doTruthJets){
-    _tree->Branch("truthJet2_n", &_b_truthJet2_n, "truthJet2_n/I");
-    _tree->Branch("truthJet2_eta", _b_truthJet2_eta, "truthJet2_eta[truthJet2_n]/F");
-    _tree->Branch("truthJet2_phi", _b_truthJet2_phi, "truthJet2_phi[truthJet2_n]/F");
-    _tree->Branch("truthJet2_pt", _b_truthJet2_pt, "truthJet2_pt[truthJet2_n]/F");
-
-    _tree->Branch("truthJet3_n", &_b_truthJet3_n, "truthJet3_n/I");
-    _tree->Branch("truthJet3_eta", _b_truthJet3_eta, "truthJet3_eta[truthJet3_n]/F");
-    _tree->Branch("truthJet3_phi", _b_truthJet3_phi, "truthJet3_phi[truthJet3_n]/F");
-    _tree->Branch("truthJet3_pt", _b_truthJet3_pt, "truthJet3_pt[truthJet3_n]/F");
-
-    _tree->Branch("truthJet4_n", &_b_truthJet4_n, "truthJet4_n/I");
-    _tree->Branch("truthJet4_eta", _b_truthJet4_eta, "truthJet4_eta[truthJet4_n]/F");
-    _tree->Branch("truthJet4_phi", _b_truthJet4_phi, "truthJet4_phi[truthJet4_n]/F");
-    _tree->Branch("truthJet4_pt", _b_truthJet4_pt, "truthJet4_pt[truthJet4_n]/F");
-
-    _tree->Branch("truthJet5_n", &_b_truthJet5_n, "truthJet5_n/I");
-    _tree->Branch("truthJet5_eta", _b_truthJet5_eta, "truthJet5_eta[truthJet5_n]/F");
-    _tree->Branch("truthJet5_phi", _b_truthJet5_phi, "truthJet5_phi[truthJet5_n]/F");
-    _tree->Branch("truthJet5_pt", _b_truthJet5_pt, "truthJet5_pt[truthJet5_n]/F");
-  }
+  _tree->Branch("particle_n", &_b_particle_n,"particle_n/I");
+  _tree->Branch("particle_pt", _b_particle_pt,"particle_pt[particle_n]/F");
+  _tree->Branch("particle_eta", _b_particle_eta,"particle_eta[particle_n]/F");
+  _tree->Branch("particle_phi", _b_particle_phi,"particle_phi[particle_n]/F");
+  _tree->Branch("particle_pid", _b_particle_pid,"particle_pid[particle_n]/I");
 
   return 0;
+
 }
 
 int TreeMaker::process_event(PHCompositeNode *topNode)
 {
-  //Clear all vectors
 
-  _b_cluster_tower_phi.clear();
-  _b_cluster_tower_eta.clear();
-  _b_cluster_tower_layer.clear();
-
-  _b_clusterT_tower_phi.clear();
-  _b_clusterT_tower_eta.clear();
-  _b_clusterT_tower_layer.clear();
-
-  _b_clusterT2_tower_phi.clear();
-  _b_clusterT2_tower_eta.clear();
-  _b_clusterT2_tower_layer.clear();
-
-  std::cout << "DVP TreeMaker : at process_event, tree size is: " << _tree->GetEntries() << std::endl;
-
-  //std::cout << "FILE, LINE: " << __FILE__ << ", " << __LINE__ << std::endl;
-
-  RawTowerContainer *towersSimEM4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_SIM_CEMC");
-  RawTowerContainer *towersSimIH4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_SIM_HCALIN");
-  RawTowerContainer *towersSimOH4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_SIM_HCALOUT");
-
-  RawTowerContainer *towersRawEM4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_RAW_CEMC");
-  RawTowerContainer *towersRawIH4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_RAW_HCALIN");
-  RawTowerContainer *towersRawOH4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_RAW_HCALOUT");
-
-  RawTowerContainer *towersCalibEM4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_CALIB_CEMC");
-  RawTowerContainer *towersCalibIH4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_CALIB_HCALIN");
-  RawTowerContainer *towersCalibOH4 = findNode::getClass<RawTowerContainer>(topNode, "TOWER_CALIB_HCALOUT");
-
-  RawTowerGeomContainer *geomCEMC = findNode::getClass<RawTowerGeomContainer>(topNode, "TOWERGEOM_CEMC");
-  RawTowerGeomContainer *geomIH = findNode::getClass<RawTowerGeomContainer>(topNode, "TOWERGEOM_HCALIN");
-  RawTowerGeomContainer *geomOH = findNode::getClass<RawTowerGeomContainer>(topNode, "TOWERGEOM_HCALOUT");
-
-  RawClusterContainer *clustersEM = findNode::getClass<RawClusterContainer>(topNode, "CLUSTER_CEMC");
-  RawClusterContainer *clustersT = findNode::getClass<RawClusterContainer>(topNode, "TOPOCLUSTER_EMCAL");
-  RawClusterContainer *clustersT2 = findNode::getClass<RawClusterContainer>(topNode, "TOPOCLUSTER_ALLCALO");
+  std::cout << "TreeMaker : at process_event, tree size is: " << _tree->GetEntries() << std::endl;
 
 
-  //std::cout << "FILE, LINE: " << __FILE__ << ", " << __LINE__ << std::endl;
+  ////////////////////////////////////////////////////////
+  // R=0.2
+  _b_tjet2_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Truth_r02");
 
-  _b_tower_sim_n = 0;
-  _b_tower_raw_n = 0;
-  _b_tower_calib_n = 0;
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet2_pt = this_jet->get_pt();
+      float jet2_phi = this_jet->get_phi();
+      float jet2_eta = this_jet->get_eta();
 
-  //Zero the clusters
-  _b_cluster_n = 0;
-  _b_clusterT_n = 0;
-  _b_clusterT2_n = 0;
+      _b_tjet2_pt[ _b_tjet2_n ] = jet2_pt;
+      _b_tjet2_eta[ _b_tjet2_n ] = jet2_eta;
+      _b_tjet2_phi[ _b_tjet2_n ] = jet2_phi;
 
-  //std::cout << "FILE, LINE: " << __FILE__ << ", " << __LINE__ << std::endl;
+      if (this_jet->get_pt() < 5 || fabs(jet2_eta) > 0.6) continue;
 
-  processTowersSim(towersSimEM4, geomCEMC, 3);
-  processTowersSim(towersSimIH4, geomIH, 4);
-  processTowersSim(towersSimOH4, geomOH, 5);
+      //std::cout << " Truth R=0.2 jet #" << _b_tjet2_n << ", pt / eta / phi = " << jet2_pt << " / " << jet2_eta << " / " << jet2_phi << std::endl;
 
-  //std::cout << "FILE, LINE: " << __FILE__ << ", " << __LINE__ << std::endl;
+      _b_tjet2_n++;
+    }
+  }
 
-  processTowersRaw(towersRawEM4, geomCEMC, 3);
-  processTowersRaw(towersRawIH4, geomIH, 4);
-  processTowersRaw(towersRawOH4, geomOH, 5);
+  _b_cjet2_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Tower_r02");
 
-  //std::cout << "FILE, LINE: " << __FILE__ << ", " << __LINE__ << std::endl;
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet2_pt = this_jet->get_pt();
+      float jet2_phi = this_jet->get_phi();
+      float jet2_eta = this_jet->get_eta();
 
-  processTowersCalib(towersCalibEM4, geomCEMC, 3);
-  processTowersCalib(towersCalibIH4, geomIH, 4);
-  processTowersCalib(towersCalibOH4, geomOH, 5);
+      _b_cjet2_pt[ _b_cjet2_n ] = jet2_pt;
+      _b_cjet2_eta[ _b_cjet2_n ] = jet2_eta;
+      _b_cjet2_phi[ _b_cjet2_n ] = jet2_phi;
 
+      if (this_jet->get_pt() < 5 || fabs(jet2_eta) > 0.6) continue;
+
+      //std::cout << " Tower R=0.2 jet #" << _b_cjet2_n << ", pt / eta / phi = " << jet2_pt << " / " << jet2_eta << " / " << jet2_phi << std::endl;
+
+      _b_cjet2_n++;
+    }
+  }
+
+  _b_ljet2_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Cluster_r02");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet2_pt = this_jet->get_pt();
+      float jet2_phi = this_jet->get_phi();
+      float jet2_eta = this_jet->get_eta();
+
+      _b_ljet2_pt[ _b_ljet2_n ] = jet2_pt;
+      _b_ljet2_eta[ _b_ljet2_n ] = jet2_eta;
+      _b_ljet2_phi[ _b_ljet2_n ] = jet2_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet2_eta) > 0.6) continue;
+
+      //std::cout << " Tower R=0.2 jet #" << _b_ljet2_n << ", pt / eta / phi = " << jet2_pt << " / " << jet2_eta << " / " << jet2_phi << std::endl;
+
+      _b_ljet2_n++;
+    }
+  }
+
+  _b_pjet2_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_ParticleFlow_r02");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet2_pt = this_jet->get_pt();
+      float jet2_phi = this_jet->get_phi();
+      float jet2_eta = this_jet->get_eta();
+
+      _b_pjet2_pt[ _b_pjet2_n ] = jet2_pt;
+      _b_pjet2_eta[ _b_pjet2_n ] = jet2_eta;
+      _b_pjet2_phi[ _b_pjet2_n ] = jet2_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet2_eta) > 0.6) continue;
+
+      //std::cout << " ParticleFlow R=0.2 jet #" << _b_pjet2_n << ", pt / eta / phi = " << jet2_pt << " / " << jet2_eta << " / " << jet2_phi << std::endl;
+
+      _b_pjet2_n++;
+    }
+  }
+
+
+  ////////////////////////////////////////////////////////
+  // R=0.3
+  _b_tjet3_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Truth_r03");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet3_pt = this_jet->get_pt();
+      float jet3_phi = this_jet->get_phi();
+      float jet3_eta = this_jet->get_eta();
+
+      _b_tjet3_pt[ _b_tjet3_n ] = jet3_pt;
+      _b_tjet3_eta[ _b_tjet3_n ] = jet3_eta;
+      _b_tjet3_phi[ _b_tjet3_n ] = jet3_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet3_eta) > 0.6) continue;
+
+      //std::cout << " Truth R=0.3 jet #" << _b_tjet3_n << ", pt / eta / phi = " << jet3_pt << " / " << jet3_eta << " / " << jet3_phi << std::endl;
+
+      _b_tjet3_n++;
+    }
+  }
+
+  _b_cjet3_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Tower_r03");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet3_pt = this_jet->get_pt();
+      float jet3_phi = this_jet->get_phi();
+      float jet3_eta = this_jet->get_eta();
+
+      _b_cjet3_pt[ _b_cjet3_n ] = jet3_pt;
+      _b_cjet3_eta[ _b_cjet3_n ] = jet3_eta;
+      _b_cjet3_phi[ _b_cjet3_n ] = jet3_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet3_eta) > 0.6) continue;
+
+      //std::cout << " Tower R=0.3 jet #" << _b_cjet3_n << ", pt / eta / phi = " << jet3_pt << " / " << jet3_eta << " / " << jet3_phi << std::endl;
+
+      _b_cjet3_n++;
+    }
+  }
+
+  _b_ljet3_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Cluster_r03");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet3_pt = this_jet->get_pt();
+      float jet3_phi = this_jet->get_phi();
+      float jet3_eta = this_jet->get_eta();
+
+      _b_ljet3_pt[ _b_ljet3_n ] = jet3_pt;
+      _b_ljet3_eta[ _b_ljet3_n ] = jet3_eta;
+      _b_ljet3_phi[ _b_ljet3_n ] = jet3_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet3_eta) > 0.6) continue;
+
+      //std::cout << " Tower R=0.3 jet #" << _b_ljet3_n << ", pt / eta / phi = " << jet3_pt << " / " << jet3_eta << " / " << jet3_phi << std::endl;
+
+      _b_ljet3_n++;
+    }
+  }
+
+  _b_pjet3_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_ParticleFlow_r03");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet3_pt = this_jet->get_pt();
+      float jet3_phi = this_jet->get_phi();
+      float jet3_eta = this_jet->get_eta();
+
+      _b_pjet3_pt[ _b_pjet3_n ] = jet3_pt;
+      _b_pjet3_eta[ _b_pjet3_n ] = jet3_eta;
+      _b_pjet3_phi[ _b_pjet3_n ] = jet3_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet3_eta) > 0.6) continue;
+
+      //std::cout << " ParticleFlow R=0.3 jet #" << _b_pjet3_n << ", pt / eta / phi = " << jet3_pt << " / " << jet3_eta << " / " << jet3_phi << std::endl;
+
+      _b_pjet3_n++;
+    }
+  }
+
+
+  ////////////////////////////////////////////////////////
+  // R=0.4
+  _b_tjet4_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Truth_r04");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet4_pt = this_jet->get_pt();
+      float jet4_phi = this_jet->get_phi();
+      float jet4_eta = this_jet->get_eta();
+
+      _b_tjet4_pt[ _b_tjet4_n ] = jet4_pt;
+      _b_tjet4_eta[ _b_tjet4_n ] = jet4_eta;
+      _b_tjet4_phi[ _b_tjet4_n ] = jet4_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet4_eta) > 0.6) continue;
+
+      //std::cout << " Truth R=0.4 jet #" << _b_tjet4_n << ", pt / eta / phi = " << jet4_pt << " / " << jet4_eta << " / " << jet4_phi << std::endl;
+
+      _b_tjet4_n++;
+    }
+  }
+
+  _b_cjet4_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Tower_r04");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet4_pt = this_jet->get_pt();
+      float jet4_phi = this_jet->get_phi();
+      float jet4_eta = this_jet->get_eta();
+
+      _b_cjet4_pt[ _b_cjet4_n ] = jet4_pt;
+      _b_cjet4_eta[ _b_cjet4_n ] = jet4_eta;
+      _b_cjet4_phi[ _b_cjet4_n ] = jet4_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet4_eta) > 0.6) continue;
+
+      //std::cout << " Tower R=0.4 jet #" << _b_cjet4_n << ", pt / eta / phi = " << jet4_pt << " / " << jet4_eta << " / " << jet4_phi << std::endl;
+
+      _b_cjet4_n++;
+    }
+  }
+
+  _b_ljet4_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Cluster_r04");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet4_pt = this_jet->get_pt();
+      float jet4_phi = this_jet->get_phi();
+      float jet4_eta = this_jet->get_eta();
+
+      _b_ljet4_pt[ _b_ljet4_n ] = jet4_pt;
+      _b_ljet4_eta[ _b_ljet4_n ] = jet4_eta;
+      _b_ljet4_phi[ _b_ljet4_n ] = jet4_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet4_eta) > 0.6) continue;
+
+      //std::cout << " Tower R=0.4 jet #" << _b_ljet4_n << ", pt / eta / phi = " << jet4_pt << " / " << jet4_eta << " / " << jet4_phi << std::endl;
+
+      _b_ljet4_n++;
+    }
+  }
+
+  _b_pjet4_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_ParticleFlow_r04");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet4_pt = this_jet->get_pt();
+      float jet4_phi = this_jet->get_phi();
+      float jet4_eta = this_jet->get_eta();
+
+      _b_pjet4_pt[ _b_pjet4_n ] = jet4_pt;
+      _b_pjet4_eta[ _b_pjet4_n ] = jet4_eta;
+      _b_pjet4_phi[ _b_pjet4_n ] = jet4_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet4_eta) > 0.6) continue;
+
+      //std::cout << " ParticleFlow R=0.4 jet #" << _b_pjet4_n << ", pt / eta / phi = " << jet4_pt << " / " << jet4_eta << " / " << jet4_phi << std::endl;
+
+      _b_pjet4_n++;
+    }
+  }
+
+
+  ////////////////////////////////////////////////////////
+  // R=0.5
+  _b_tjet5_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Truth_r05");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet5_pt = this_jet->get_pt();
+      float jet5_phi = this_jet->get_phi();
+      float jet5_eta = this_jet->get_eta();
+
+      _b_tjet5_pt[ _b_tjet5_n ] = jet5_pt;
+      _b_tjet5_eta[ _b_tjet5_n ] = jet5_eta;
+      _b_tjet5_phi[ _b_tjet5_n ] = jet5_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet5_eta) > 0.6) continue;
+
+      //std::cout << " Truth R=0.5 jet #" << _b_tjet5_n << ", pt / eta / phi = " << jet5_pt << " / " << jet5_eta << " / " << jet5_phi << std::endl;
+
+      _b_tjet5_n++;
+    }
+  }
+
+  _b_cjet5_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Tower_r05");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet5_pt = this_jet->get_pt();
+      float jet5_phi = this_jet->get_phi();
+      float jet5_eta = this_jet->get_eta();
+
+      _b_cjet5_pt[ _b_cjet5_n ] = jet5_pt;
+      _b_cjet5_eta[ _b_cjet5_n ] = jet5_eta;
+      _b_cjet5_phi[ _b_cjet5_n ] = jet5_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet5_eta) > 0.6) continue;
+
+      //std::cout << " Tower R=0.5 jet #" << _b_cjet5_n << ", pt / eta / phi = " << jet5_pt << " / " << jet5_eta << " / " << jet5_phi << std::endl;
+
+      _b_cjet5_n++;
+    }
+  }
+
+  _b_ljet5_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_Cluster_r05");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet5_pt = this_jet->get_pt();
+      float jet5_phi = this_jet->get_phi();
+      float jet5_eta = this_jet->get_eta();
+
+      _b_ljet5_pt[ _b_ljet5_n ] = jet5_pt;
+      _b_ljet5_eta[ _b_ljet5_n ] = jet5_eta;
+      _b_ljet5_phi[ _b_ljet5_n ] = jet5_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet5_eta) > 0.6) continue;
+
+      //std::cout << " Tower R=0.5 jet #" << _b_ljet5_n << ", pt / eta / phi = " << jet5_pt << " / " << jet5_eta << " / " << jet5_phi << std::endl;
+
+      _b_ljet5_n++;
+    }
+  }
+
+  _b_pjet5_n = 0;
+  {
+    JetMap* jets = findNode::getClass<JetMap>(topNode,"AntiKt_ParticleFlow_r05");
+
+    for (JetMap::Iter iter = jets->begin(); iter != jets->end(); ++iter) {
+      Jet* this_jet = iter->second;
+      
+      float jet5_pt = this_jet->get_pt();
+      float jet5_phi = this_jet->get_phi();
+      float jet5_eta = this_jet->get_eta();
+
+      _b_pjet5_pt[ _b_pjet5_n ] = jet5_pt;
+      _b_pjet5_eta[ _b_pjet5_n ] = jet5_eta;
+      _b_pjet5_phi[ _b_pjet5_n ] = jet5_phi;
+
+      if (this_jet->get_pt() < 5 || fabs(jet5_eta) > 0.6) continue;
+
+      //std::cout << " ParticleFlow R=0.5 jet #" << _b_pjet5_n << ", pt / eta / phi = " << jet5_pt << " / " << jet5_eta << " / " << jet5_phi << std::endl;
+
+      _b_pjet5_n++;
+    }
+  }
+
+
+  /////////////////////////////////////////////////
+  // true particle information
+  _b_particle_n = 0;
+  {
+    
+    PHG4TruthInfoContainer* truthinfo = findNode::getClass <PHG4TruthInfoContainer> (topNode, "G4TruthInfo");
+    PHG4TruthInfoContainer::Range range = truthinfo->GetPrimaryParticleRange ();
+    
+    for (PHG4TruthInfoContainer::ConstIterator iter = range.first; iter != range.second; ++iter) {
+      PHG4Particle* g4particle = iter->second;
+      
+      TLorentzVector t;
+      t.SetPxPyPzE (g4particle->get_px (), g4particle->get_py (), g4particle->get_pz (), g4particle->get_e ());
+      
+      float truth_pt = t.Pt ();
+      if (truth_pt < 0.1)
+	continue; // only keep pt > 0.1
+      
+      float truth_eta = t.Eta ();
+      if (fabs (truth_eta) > 1.1)
+	continue; // only keep |eta| < 1.1
+      
+      float truth_phi = t.Phi ();
+      int truth_pid = g4particle->get_pid (); // particle species
+      
+
+      // IMPORTANT! Pythia particles have an "embed id"=2, while Hijing particles will have "embed id"=0.
+      // Think twice before writing out all pT > 0.4 GeV Hijing particles....
+      //if (truthinfo->isEmbeded (g4particle->get_track_id ()) == 2) {
+      _b_particle_pt[_b_particle_n] = truth_pt;
+      _b_particle_eta[_b_particle_n] = truth_eta;
+      _b_particle_phi[_b_particle_n] = truth_phi;
+      _b_particle_pid[_b_particle_n] = truth_pid;
+      
+      _b_particle_embed[_b_particle_n] = truthinfo->isEmbeded (g4particle->get_track_id ());
+      
+      _b_particle_n++;
+      
+    //  if (  g4particle->get_e () > 1 ) 
+	//std::cout << " Truth Particle #" << _b_particle_n << ", pt / eta / phi / E = " << truth_pt << " / " << truth_eta << " / " << truth_phi << " / " << g4particle->get_e () << " , PID " << truth_pid << ", embed = " << truthinfo->isEmbeded (g4particle->get_track_id ()) << std::endl;
+      
+    }
+  }
+      
+  std::cout << " -------------------------- below is next event " <<  _tree->GetEntries() + 1 << std::endl;
   
-  processClusters(clustersEM, towersCalibEM4, towersCalibIH4, towersCalibOH4, geomCEMC, geomIH, geomOH, &_b_cluster_n, _b_cluster_eta, _b_cluster_phi, _b_cluster_E, _b_cluster_ntower, &_b_clusterT_tower_phi, &_b_clusterT_tower_eta, &_b_clusterT_tower_layer);
-  processClusters(clustersT, towersCalibEM4, towersCalibIH4, towersCalibOH4, geomCEMC, geomIH, geomOH, &_b_clusterT_n, _b_clusterT_eta, _b_clusterT_phi, _b_clusterT_E, _b_clusterT_ntower, &_b_clusterT_tower_phi, &_b_clusterT_tower_eta, &_b_clusterT_tower_layer);
-  processClusters(clustersT2, towersCalibEM4, towersCalibIH4, towersCalibOH4, geomCEMC, geomIH, geomOH, &_b_clusterT2_n, _b_clusterT2_eta, _b_clusterT2_phi, _b_clusterT2_E, _b_clusterT2_ntower, &_b_clusterT2_tower_phi, &_b_clusterT2_tower_eta, &_b_clusterT2_tower_layer);  
-
-  _b_part_n = 0;
-
-  //Lets grab truth info too (Based on macro coresoftware/offline/packages/jetbackground/DetermineTowerBackground as of 2019.08.02
-  PHG4TruthInfoContainer *truthinfo = findNode::getClass<PHG4TruthInfoContainer>(topNode, "G4TruthInfo");
-
-  PHG4VtxPoint *point = nullptr;
-  if(truthinfo->GetPrimaryVertexIndex() > 0){
-    point = truthinfo->GetPrimaryVtx(truthinfo->GetPrimaryVertexIndex());
-    _b_truth_vx = point->get_x();
-    _b_truth_vy = point->get_y();
-    _b_truth_vz = point->get_z();
-  }
-  else{
-    _b_truth_vx = -999.;
-    _b_truth_vy = -999.;
-    _b_truth_vz = -999.;
-  }
-
-  PHG4TruthInfoContainer::Range range = truthinfo->GetPrimaryParticleRange();
-  for(PHG4TruthInfoContainer::ConstIterator iter = range.first; iter != range.second; ++iter){
-    PHG4Particle *g4particle = iter->second;
-
-    TLorentzVector t;
-    t.SetPxPyPzE(g4particle->get_px(), g4particle->get_py(), g4particle->get_pz(), g4particle->get_e());
-
-    if(t.Pt() < 0.1) continue; //Not sure what the pT cutoff is for reaching calorimeter with this magnetic field, but this is a safe lower bound
-    if(TMath::Abs(t.Eta()) > 1.1) continue; //Don't need stuff beyond calorimeter acceptance
-    
-    _b_part_pt[_b_part_n] = t.Pt();
-    _b_part_phi[_b_part_n] = t.Phi();
-    _b_part_eta[_b_part_n] = t.Eta();
-    _b_part_m[_b_part_n] = t.M();
-    _b_part_pdgid[_b_part_n] = g4particle->get_pid();
-
-    ++_b_part_n;
-  }  
-
-  if(_doCaloJets){
-    //R=2
-    _b_caloJet2_n = 0;
-    JetMap* caloJets2_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r02");
-    for(JetMap::Iter iter = caloJets2_p->begin(); iter != caloJets2_p->end(); ++iter){
-      Jet *jet = iter->second;
-      
-      if(jet->get_pt() < _caloJetsPtMin) continue;
-      if(jet->get_eta() < _caloJetsEtaLow) continue;
-      if(jet->get_eta() > _caloJetsEtaHigh) continue;
-      
-      _b_caloJet2_pt[_b_caloJet2_n] = jet->get_pt();
-      _b_caloJet2_phi[_b_caloJet2_n] = jet->get_phi();
-      _b_caloJet2_eta[_b_caloJet2_n] = jet->get_eta();
-      ++_b_caloJet2_n;
-    }
-    
-    //R=3
-    _b_caloJet3_n = 0;
-    JetMap* caloJets3_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r03");
-    for(JetMap::Iter iter = caloJets3_p->begin(); iter != caloJets3_p->end(); ++iter){
-      Jet *jet = iter->second;
-      
-      if(jet->get_pt() < _caloJetsPtMin) continue;
-      if(jet->get_eta() < _caloJetsEtaLow) continue;
-      if(jet->get_eta() > _caloJetsEtaHigh) continue;
-      
-      _b_caloJet3_pt[_b_caloJet3_n] = jet->get_pt();
-      _b_caloJet3_phi[_b_caloJet3_n] = jet->get_phi();
-      _b_caloJet3_eta[_b_caloJet3_n] = jet->get_eta();
-      ++_b_caloJet3_n;
-    }
-
-    //R=4
-    _b_caloJet4_n = 0;
-    JetMap* caloJets4_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r04");
-    for(JetMap::Iter iter = caloJets4_p->begin(); iter != caloJets4_p->end(); ++iter){
-      Jet *jet = iter->second;
-      
-      if(jet->get_pt() < _caloJetsPtMin) continue;
-      if(jet->get_eta() < _caloJetsEtaLow) continue;
-      if(jet->get_eta() > _caloJetsEtaHigh) continue;
-      
-      _b_caloJet4_pt[_b_caloJet4_n] = jet->get_pt();
-      _b_caloJet4_phi[_b_caloJet4_n] = jet->get_phi();
-      _b_caloJet4_eta[_b_caloJet4_n] = jet->get_eta();
-      ++_b_caloJet4_n;
-    }
-
-    //R=5
-    _b_caloJet5_n = 0;
-    JetMap* caloJets5_p = findNode::getClass<JetMap>(topNode, "AntiKt_Tower_r05");
-    for(JetMap::Iter iter = caloJets5_p->begin(); iter != caloJets5_p->end(); ++iter){
-      Jet *jet = iter->second;
-      
-      if(jet->get_pt() < _caloJetsPtMin) continue;
-      if(jet->get_eta() < _caloJetsEtaLow) continue;
-      if(jet->get_eta() > _caloJetsEtaHigh) continue;
-      
-      _b_caloJet5_pt[_b_caloJet5_n] = jet->get_pt();
-      _b_caloJet5_phi[_b_caloJet5_n] = jet->get_phi();
-      _b_caloJet5_eta[_b_caloJet5_n] = jet->get_eta();
-      ++_b_caloJet5_n;
-    }
-  }
-
-  if(_doPFJets){
-    _b_pfJet2_n = 0;
-    JetMap* pfJets2_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r02");
-    for(JetMap::Iter iter = pfJets2_p->begin(); iter != pfJets2_p->end(); ++iter){
-      Jet *jet = iter->second;
-
-      if(jet->get_pt() < _pfJetsPtMin) continue;
-      if(jet->get_eta() < _pfJetsEtaLow) continue;
-      if(jet->get_eta() > _pfJetsEtaHigh) continue;
-      
-      _b_pfJet2_pt[_b_pfJet2_n] = jet->get_pt();
-      _b_pfJet2_phi[_b_pfJet2_n] = jet->get_phi();
-      _b_pfJet2_eta[_b_pfJet2_n] = jet->get_eta();
-      ++_b_pfJet2_n;
-    }
-
-    _b_pfJet3_n = 0;
-    JetMap* pfJets3_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r03");
-    for(JetMap::Iter iter = pfJets3_p->begin(); iter != pfJets3_p->end(); ++iter){
-      Jet *jet = iter->second;
-
-      if(jet->get_pt() < _pfJetsPtMin) continue;
-      if(jet->get_eta() < _pfJetsEtaLow) continue;
-      if(jet->get_eta() > _pfJetsEtaHigh) continue;
-      
-      _b_pfJet3_pt[_b_pfJet3_n] = jet->get_pt();
-      _b_pfJet3_phi[_b_pfJet3_n] = jet->get_phi();
-      _b_pfJet3_eta[_b_pfJet3_n] = jet->get_eta();
-      ++_b_pfJet3_n;
-    }
-
-    _b_pfJet4_n = 0;
-    JetMap* pfJets4_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r04");
-    for(JetMap::Iter iter = pfJets4_p->begin(); iter != pfJets4_p->end(); ++iter){
-      Jet *jet = iter->second;
-
-      if(jet->get_pt() < _pfJetsPtMin) continue;
-      if(jet->get_eta() < _pfJetsEtaLow) continue;
-      if(jet->get_eta() > _pfJetsEtaHigh) continue;
-      
-      _b_pfJet4_pt[_b_pfJet4_n] = jet->get_pt();
-      _b_pfJet4_phi[_b_pfJet4_n] = jet->get_phi();
-      _b_pfJet4_eta[_b_pfJet4_n] = jet->get_eta();
-      ++_b_pfJet4_n;
-    }
-
-    _b_pfJet5_n = 0;
-    JetMap* pfJets5_p = findNode::getClass<JetMap>(topNode, "AntiKt_ParticleFlow_r05");
-    for(JetMap::Iter iter = pfJets5_p->begin(); iter != pfJets5_p->end(); ++iter){
-      Jet *jet = iter->second;
-
-      if(jet->get_pt() < _pfJetsPtMin) continue;
-      if(jet->get_eta() < _pfJetsEtaLow) continue;
-      if(jet->get_eta() > _pfJetsEtaHigh) continue;
-      
-      _b_pfJet5_pt[_b_pfJet5_n] = jet->get_pt();
-      _b_pfJet5_phi[_b_pfJet5_n] = jet->get_phi();
-      _b_pfJet5_eta[_b_pfJet5_n] = jet->get_eta();
-      ++_b_pfJet5_n;
-    }
-  }
-
-  if(_doTruthJets){
-    _b_truthJet2_n = 0;
-    JetMap* truthJets2_p = findNode::getClass<JetMap>(topNode, "AntiKt_Truth_r02");
-    for(JetMap::Iter iter = truthJets2_p->begin(); iter != truthJets2_p->end(); ++iter){
-      Jet *jet = iter->second;
-
-      if(jet->get_pt() < _truthJetsPtMin) continue;
-      if(jet->get_eta() < _truthJetsEtaLow) continue;
-      if(jet->get_eta() > _truthJetsEtaHigh) continue;
-      
-      _b_truthJet2_pt[_b_truthJet2_n] = jet->get_pt();
-      _b_truthJet2_phi[_b_truthJet2_n] = jet->get_phi();
-      _b_truthJet2_eta[_b_truthJet2_n] = jet->get_eta();
-      ++_b_truthJet2_n;
-    }
-
-    _b_truthJet3_n = 0;
-    JetMap* truthJets3_p = findNode::getClass<JetMap>(topNode, "AntiKt_Truth_r03");
-    for(JetMap::Iter iter = truthJets3_p->begin(); iter != truthJets3_p->end(); ++iter){
-      Jet *jet = iter->second;
-
-      if(jet->get_pt() < _truthJetsPtMin) continue;
-      if(jet->get_eta() < _truthJetsEtaLow) continue;
-      if(jet->get_eta() > _truthJetsEtaHigh) continue;
-      
-      _b_truthJet3_pt[_b_truthJet3_n] = jet->get_pt();
-      _b_truthJet3_phi[_b_truthJet3_n] = jet->get_phi();
-      _b_truthJet3_eta[_b_truthJet3_n] = jet->get_eta();
-      ++_b_truthJet3_n;
-    }
-
-    _b_truthJet4_n = 0;
-    JetMap* truthJets4_p = findNode::getClass<JetMap>(topNode, "AntiKt_Truth_r04");
-    for(JetMap::Iter iter = truthJets4_p->begin(); iter != truthJets4_p->end(); ++iter){
-      Jet *jet = iter->second;
-
-      if(jet->get_pt() < _truthJetsPtMin) continue;
-      if(jet->get_eta() < _truthJetsEtaLow) continue;
-      if(jet->get_eta() > _truthJetsEtaHigh) continue;
-      
-      _b_truthJet4_pt[_b_truthJet4_n] = jet->get_pt();
-      _b_truthJet4_phi[_b_truthJet4_n] = jet->get_phi();
-      _b_truthJet4_eta[_b_truthJet4_n] = jet->get_eta();
-      ++_b_truthJet4_n;
-    }
-
-    _b_truthJet5_n = 0;
-    JetMap* truthJets5_p = findNode::getClass<JetMap>(topNode, "AntiKt_Truth_r05");
-    for(JetMap::Iter iter = truthJets5_p->begin(); iter != truthJets5_p->end(); ++iter){
-      Jet *jet = iter->second;
-
-      if(jet->get_pt() < _truthJetsPtMin) continue;
-      if(jet->get_eta() < _truthJetsEtaLow) continue;
-      if(jet->get_eta() > _truthJetsEtaHigh) continue;
-      
-      _b_truthJet5_pt[_b_truthJet5_n] = jet->get_pt();
-      _b_truthJet5_phi[_b_truthJet5_n] = jet->get_phi();
-      _b_truthJet5_eta[_b_truthJet5_n] = jet->get_eta();
-      ++_b_truthJet5_n;
-    }
-  }
-    
-
   _tree->Fill();
-
+  
   return 0;
 }
+
+
 
 int TreeMaker::End(PHCompositeNode *topNode)
 {
+
   _f->Write();
   _f->Close();
-
-  //std::cout << "FILE, LINE: " << __FILE__ << ", " << __LINE__ << std::endl;
 
   return 0;
 }
 
-void TreeMaker::processTowersSim(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer)
-{  
-  RawTowerContainer::ConstRange begin_end = towers->getTowers();
-  for (RawTowerContainer::ConstIterator rtiter = begin_end.first; rtiter != begin_end.second; ++rtiter) {
-    RawTower *tower = rtiter->second;
-    RawTowerGeom *tower_geom = geom->get_tower_geometry(tower->get_key());
-    _b_tower_sim_layer[ _b_tower_sim_n ] = layer;
-    _b_tower_sim_E[ _b_tower_sim_n ] = tower->get_energy();
-    _b_tower_sim_eta[ _b_tower_sim_n ] = tower_geom->get_eta();
-    _b_tower_sim_phi[ _b_tower_sim_n ] = tower_geom->get_phi();
-    _b_tower_sim_n++;
-
-    if(_b_tower_sim_n >= nTowers){
-      std::cout << __FILE__ << " ERROR: _b_tower_sim_n has hit cap of " << nTowers << "!!!" << std::endl;
-    }
-  }  
-
-  return;
-}
-
-void TreeMaker::processTowersRaw(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer)
-{  
-  RawTowerContainer::ConstRange begin_end = towers->getTowers();
-  for (RawTowerContainer::ConstIterator rtiter = begin_end.first; rtiter != begin_end.second; ++rtiter) {
-    RawTower *tower = rtiter->second;
-    RawTowerGeom *tower_geom = geom->get_tower_geometry(tower->get_key());
-    _b_tower_raw_layer[ _b_tower_raw_n ] = layer;
-    _b_tower_raw_E[ _b_tower_raw_n ] = tower->get_energy();
-    _b_tower_raw_eta[ _b_tower_raw_n ] = tower_geom->get_eta();
-    _b_tower_raw_phi[ _b_tower_raw_n ] = tower_geom->get_phi();
-    _b_tower_raw_n++;
-
-    if(_b_tower_raw_n >= nTowers){
-      std::cout << __FILE__ << " ERROR: _b_tower_raw_n has hit cap of " << nTowers << "!!!" << std::endl;
-    }
-  }  
-
-  return;
-}
-
-void TreeMaker::processTowersCalib(RawTowerContainer* towers, RawTowerGeomContainer* geom, int layer)
-{  
-  RawTowerContainer::ConstRange begin_end = towers->getTowers();
-  for (RawTowerContainer::ConstIterator rtiter = begin_end.first; rtiter != begin_end.second; ++rtiter) {
-    RawTower *tower = rtiter->second;
-    RawTowerGeom *tower_geom = geom->get_tower_geometry(tower->get_key());
-    _b_tower_calib_layer[ _b_tower_calib_n ] = layer;
-    _b_tower_calib_E[ _b_tower_calib_n ] = tower->get_energy();
-    _b_tower_calib_eta[ _b_tower_calib_n ] = tower_geom->get_eta();
-    _b_tower_calib_phi[ _b_tower_calib_n ] = tower_geom->get_phi();
-    _b_tower_calib_n++;
-
-    if(_b_tower_calib_n >= nTowers){
-      std::cout << __FILE__ << " ERROR: _b_tower_calib_n has hit cap of " << nTowers << "!!!" << std::endl;
-    }
-  }  
-
-  return;
-}
-
-//Really this should just be a class but I leave that to others
-void TreeMaker::processClusters(RawClusterContainer* clusters, RawTowerContainer* towersEM, RawTowerContainer* towersIH, RawTowerContainer* towersOH, RawTowerGeomContainer* geomEM, RawTowerGeomContainer* geomIH, RawTowerGeomContainer* geomOH, int* n, float* eta, float* phi, float* E, int* ntow, std::vector<std::vector<float> >* towphi, std::vector<std::vector<float> >* toweta, std::vector<std::vector<int> >* towlayer)
-{
-  (*n) = 0;
-
-  RawClusterContainer::ConstIterator hiter;
-  RawClusterContainer::ConstRange begin_end = clusters->getClusters();
-  for(hiter = begin_end.first; hiter != begin_end.second; ++hiter){
-    float theta = 3.14159/2.0 - TMath::ATan2(hiter->second->get_z(), hiter->second->get_r());
-    float tempEta = -1.0*log(tan(theta/2.0));
-
-    if(hiter->second->get_energy() < 0.1) continue; //make a safe minumum cut on cluster energy
-
-    eta[*n] = tempEta;
-    phi[*n] = hiter->second->get_phi();
-    E[*n] = hiter->second->get_energy();
-    ntow[*n] =  hiter->second->getNTowers();
-
-    towphi->push_back({});
-    toweta->push_back({});
-    towlayer->push_back({});
-
-    RawCluster::TowerConstRange begin_end = hiter->second->get_towers();
-    for(RawCluster::TowerConstIterator iter = begin_end.first; iter != begin_end.second; ++iter){
-      RawTower* tower;
-      RawTowerGeom *tower_geom;
-
-      if(RawTowerDefs::decode_caloid(iter->first) == RawTowerDefs::CalorimeterId::CEMC){
-	tower = towersEM->getTower(iter->first);
-	tower_geom = geomEM->get_tower_geometry(tower->get_key());
-	towlayer->at(towlayer->size()-1).push_back(3);
-	towphi->at(towphi->size()-1).push_back(tower_geom->get_phi());
-	toweta->at(toweta->size()-1).push_back(tower_geom->get_eta());
-      }
-      else if(RawTowerDefs::decode_caloid(iter->first) == RawTowerDefs::CalorimeterId::HCALIN){
-	tower = towersIH->getTower(iter->first);
-	tower_geom = geomIH->get_tower_geometry(tower->get_key());
-	towlayer->at(towlayer->size()-1).push_back(4);
-	towphi->at(towphi->size()-1).push_back(tower_geom->get_phi());
-	toweta->at(toweta->size()-1).push_back(tower_geom->get_eta());
-      }
-      else if(RawTowerDefs::decode_caloid(iter->first) == RawTowerDefs::CalorimeterId::HCALOUT){
-	tower = towersOH->getTower(iter->first);
-	tower_geom = geomOH->get_tower_geometry(tower->get_key());
-	towlayer->at(towlayer->size()-1).push_back(5);
-	towphi->at(towphi->size()-1).push_back(tower_geom->get_phi());
-	toweta->at(toweta->size()-1).push_back(tower_geom->get_eta());
-      }      
-    }
-    
-    ++(*n);
-  }
-
-
-  return;
-}

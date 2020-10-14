@@ -332,7 +332,7 @@ void CEMC_Cells()
   return;
 }
 
-void CEMC_Towers(int adcZSThresh = 16)
+void CEMC_Towers()
 {
   int verbosity = std::max(Enable::VERBOSITY, Enable::CEMC_VERBOSITY);
 

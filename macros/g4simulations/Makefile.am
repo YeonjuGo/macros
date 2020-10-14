@@ -1,55 +1,56 @@
 AUTOMAKE_OPTIONS = foreign
 
-AM_CPPFLAGS = \
+INCLUDES = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include \
-  -I$(ROOTSYS)/include \
-  -I$(OPT_SPHENIX)/include
+  -I`root-config --incdir`
 
-AM_LDFLAGS = \
+libTreeMaker_la_LDFLAGS = \
+  -nodefaultlibs \
   -L$(libdir) \
-  -L$(OFFLINE_MAIN)/lib
-
-pkginclude_HEADERS = \
-  TreeMaker.h \
-  TreeMakerLinkDef.h
+  -L$(OFFLINE_MAIN)/lib \
+  `root-config --libs`
 
 lib_LTLIBRARIES = \
   libTreeMaker.la
+
+include_HEADERS = \
+  TreeMaker.h \
+  TreeMakerLinkDef.h
 
 libTreeMaker_la_SOURCES = \
   TreeMaker.C \
   TreeMaker_Dict.C
 
 libTreeMaker_la_LIBADD = \
-  -lboost_filesystem \
-  -lFROG \
-  -lffaobjects \
-  -lphool \
-  -lfun4all \
-  -lSubsysReco \
-  -lcalo_util \
-  -lcalo_io \
-  -lphg4hit \
-  -lg4dst	
+  -lg4dst \
+  -lg4eval \
+  -ljetbackground \
+  -lphool
 
-BUILT_SOURCES = testexternals.cc
+BUILT_SOURCES = \
+  testexternals.C
 
 noinst_PROGRAMS = \
-  testexternals_TreeMaker
+  testexternals
 
-testexternals_TreeMaker_SOURCES = testexternals.cc
-testexternals_TreeMaker_LDADD   = libTreeMaker.la
+testexternals_LDADD = \
+  libTreeMaker.la
 
-testexternals.cc:
+testexternals.C:
 	echo "//*** this is a generated file. Do not commit, do not edit" > $@
 	echo "int main()" >> $@
 	echo "{" >> $@
 	echo "  return 0;" >> $@
 	echo "}" >> $@
 
+##############################################
+# please add new classes in alphabetical order
+# Rule for generating CINT dictionaries from class headers.
 %_Dict.C: %.h %LinkDef.h
-	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
+	rootcint -f $@ -c $(CINTFLAGS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $^
 
 clean-local:
-	rm -f *Dict* $(BUILT_SOURCES)
+	rm -f *Dict* testexternals.C
+
+testexternals_SOURCES = testexternals.C
